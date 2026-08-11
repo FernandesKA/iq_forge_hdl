@@ -1,3 +1,6 @@
+# Generated LUT data
+rtl/sine_lut.hex
+
 # Vivado/xsim simulation artifacts
 xsim.dir/
 .Xil/
