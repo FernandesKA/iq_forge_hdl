@@ -1,0 +1,10 @@
+# Vivado/xsim simulation artifacts
+xsim.dir/
+.Xil/
+*.jou
+*.log
+*.pb
+*.wdb
+*.vcd
+webtalk*.jou
+webtalk*.log
