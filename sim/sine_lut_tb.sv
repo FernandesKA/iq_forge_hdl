@@ -22,6 +22,15 @@ module sine_lut_tb
         $readmemh("rtl/sine_lut.hex", rom_model);
     end
 
+    // DDS coarse address = top LUT_ADDR_WIDTH bits of the phase accumulator,
+    // so a raw LUT address must be shifted up into those top bits to build
+    // a full ACC_WIDTH-wide i_phase value that hits it.
+    function automatic logic [ACC_WIDTH - 1 : 0] addr_to_phase(
+        input logic [LUT_ADDR_WIDTH - 1 : 0] addr
+    );
+        addr_to_phase = {addr, {(ACC_WIDTH - LUT_ADDR_WIDTH){1'b0}}};
+    endfunction
+
     initial begin
         clk = 0;
         forever #10 clk = ~clk;
@@ -80,7 +89,7 @@ module sine_lut_tb
     task automatic check_phase(input logic [ACC_WIDTH - 1 : 0] phase_val);
         logic signed [DATA_WIDTH - 1 : 0] got, expected;
         drive_and_capture(phase_val, got);
-        expected = golden_amplitude(phase_val[LUT_ADDR_WIDTH - 1 : 0]);
+        expected = golden_amplitude(phase_val[ACC_WIDTH - 1 -: LUT_ADDR_WIDTH]);
         assert (got == expected)
         else begin
             $display("phase=0x%06x: required %0d, current is %0d", phase_val, expected, got);
@@ -104,14 +113,14 @@ module sine_lut_tb
         $display("[TEST] boundary_test");
         apply_reset();
 
-        check_phase(10'h000); // quadrant 0, addr_in_quadrant = 0
-        check_phase(10'h0FF); // quadrant 0, addr_in_quadrant = max
-        check_phase(10'h100); // quadrant 1, addr_in_quadrant = 0   -> mirrors to rom[255]
-        check_phase(10'h1FF); // quadrant 1, addr_in_quadrant = max -> mirrors to rom[0]
-        check_phase(10'h200); // quadrant 2, addr_in_quadrant = 0
-        check_phase(10'h2FF); // quadrant 2, addr_in_quadrant = max
-        check_phase(10'h300); // quadrant 3, addr_in_quadrant = 0   -> mirrors to rom[255]
-        check_phase(10'h3FF); // quadrant 3, addr_in_quadrant = max -> mirrors to rom[0]
+        check_phase(addr_to_phase(10'h000)); // quadrant 0, addr_in_quadrant = 0
+        check_phase(addr_to_phase(10'h0FF)); // quadrant 0, addr_in_quadrant = max
+        check_phase(addr_to_phase(10'h100)); // quadrant 1, addr_in_quadrant = 0   -> mirrors to rom[255]
+        check_phase(addr_to_phase(10'h1FF)); // quadrant 1, addr_in_quadrant = max -> mirrors to rom[0]
+        check_phase(addr_to_phase(10'h200)); // quadrant 2, addr_in_quadrant = 0
+        check_phase(addr_to_phase(10'h2FF)); // quadrant 2, addr_in_quadrant = max
+        check_phase(addr_to_phase(10'h300)); // quadrant 3, addr_in_quadrant = 0   -> mirrors to rom[255]
+        check_phase(addr_to_phase(10'h3FF)); // quadrant 3, addr_in_quadrant = max -> mirrors to rom[0]
     endtask
 
     // structural invariant of a quarter-wave LUT sine, checked directly on
@@ -128,23 +137,23 @@ module sine_lut_tb
             addr          = a[QUAD_ADDR_WIDTH-1:0];
             mirrored_addr = (ROM_DEPTH - 1 - a);
 
-            drive_and_capture({2'b00, addr}, q0);
-            drive_and_capture({2'b10, addr}, q2);
+            drive_and_capture(addr_to_phase({2'b00, addr}), q0);
+            drive_and_capture(addr_to_phase({2'b10, addr}), q2);
             assert (q2 == -q0)
             else begin
                 $display("addr_in_quadrant=%0d: quad2 (%0d) != -quad0 (%0d)", a, q2, q0);
                 $stop;
             end
 
-            drive_and_capture({2'b01, addr}, q1);
-            drive_and_capture({2'b00, mirrored_addr}, q0);
+            drive_and_capture(addr_to_phase({2'b01, addr}), q1);
+            drive_and_capture(addr_to_phase({2'b00, mirrored_addr}), q0);
             assert (q1 == q0)
             else begin
                 $display("addr_in_quadrant=%0d: quad1 (%0d) != mirrored quad0 (%0d)", a, q1, q0);
                 $stop;
             end
 
-            drive_and_capture({2'b11, a[QUAD_ADDR_WIDTH-1:0]}, q3);
+            drive_and_capture(addr_to_phase({2'b11, a[QUAD_ADDR_WIDTH-1:0]}), q3);
             assert (q3 == -q1)
             else begin
                 $display("addr_in_quadrant=%0d: quad3 (%0d) != -quad1 (%0d)", a, q3, q1);
@@ -153,15 +162,17 @@ module sine_lut_tb
         end
     endtask
 
-    // bits above LUT_ADDR_WIDTH are dropped when i_phase is packed into the
-    // LUT address, so they must have no effect on o_amplitude
+    // the low (ACC_WIDTH - LUT_ADDR_WIDTH) bits of i_phase are the
+    // fine/fractional phase: sine_lut takes its ROM address from the top
+    // LUT_ADDR_WIDTH bits only, so the low bits must have no effect on
+    // o_amplitude within a single sample
     task automatic unused_bits_test();
         logic [ACC_WIDTH - 1 : 0] phase_val;
         $display("[TEST] unused_bits_test");
         apply_reset();
 
         for (int i = 0; i < 20; i++) begin
-            phase_val = {$urandom_range((1 << (ACC_WIDTH - LUT_ADDR_WIDTH)) - 1, 0), 10'h0AB};
+            phase_val = {10'h0AB, $urandom_range((1 << (ACC_WIDTH - LUT_ADDR_WIDTH)) - 1, 0)};
             check_phase(phase_val);
         end
     endtask

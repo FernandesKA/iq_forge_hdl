@@ -1,9 +1,5 @@
 `timescale 1ns/1ns
 
-// Not a self-checking test: chains phase_acc -> sine_lut with the minimal
-// possible phase step (ftw = 1) so that o_amplitude sweeps out a full sine
-// shape one LSB at a time. Meant to be opened in sim_gui and eyeballed on
-// the o_amplitude waveform to visually sanity-check the LUT.
 module sine_lut_sweep_tb
 #(
     parameter int ACC_WIDTH      = 24,
@@ -12,8 +8,7 @@ module sine_lut_sweep_tb
     parameter int PERIODS        = 3 // full sine periods to sweep through
 );
 
-    // sine_lut only looks at the low LUT_ADDR_WIDTH bits of i_phase, so at
-    // ftw = 1 one full sine period takes this many clock cycles
+    localparam logic [ACC_WIDTH - 1 : 0] LUT_STEP = ACC_WIDTH'(1) << (ACC_WIDTH - LUT_ADDR_WIDTH);
     localparam int LUT_PERIOD_CYCLES = 2 ** LUT_ADDR_WIDTH;
 
     logic clk, rst_n, ce;
@@ -40,7 +35,7 @@ module sine_lut_sweep_tb
         ftw   = 0;
         repeat (2) @(negedge clk);
         rst_n = 1;
-        ftw   = 1; // minimal phase increment: one LSB per clock
+        ftw   = LUT_STEP;
         ce    = 1;
 
         repeat (PERIODS * LUT_PERIOD_CYCLES) @(posedge clk);

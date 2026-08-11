@@ -28,7 +28,7 @@ module sine_lut  #(
 
     counter_union bram_cntr;
 
-    assign bram_cntr = i_phase;
+    assign bram_cntr = i_phase[ACC_WIDTH - 1 -: LUT_ADDR_WIDTH];
 
     logic [LUT_ADDR_WIDTH - 3 : 0] bram_addr;
     logic [DATA_WIDTH - 1 : 0] bram_value;
@@ -60,7 +60,7 @@ module sine_lut  #(
         endcase
     end
 
-    always_comb begin : signal_inverter 
+    always_comb begin : signal_inverter
         if (sign_quadrant[1]) begin
             o_amplitude = (~bram_value) + 1;
         end else begin
