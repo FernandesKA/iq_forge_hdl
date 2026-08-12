@@ -10,21 +10,18 @@ module sine_lut_tb
     localparam int QUAD_ADDR_WIDTH = LUT_ADDR_WIDTH - 2;
     localparam int ROM_DEPTH       = 2 ** QUAD_ADDR_WIDTH;
 
+    localparam logic [ACC_WIDTH - 1 : 0] QUARTER_TURN = (ACC_WIDTH'(1)) << (ACC_WIDTH - 2);
+
     logic clk, rst_n;
     logic [ACC_WIDTH - 1 : 0] phase;
-    logic signed [DATA_WIDTH - 1 : 0] amplitude;
+    logic signed [DATA_WIDTH - 1 : 0] amplitude_i, amplitude_q;
 
-    // reference copy of the ROM contents, used to build a golden model
-    // independent of the DUT's own $readmemh call
     logic [DATA_WIDTH - 1 : 0] rom_model [0 : ROM_DEPTH - 1];
 
     initial begin
         $readmemh("rtl/sine_lut.hex", rom_model);
     end
 
-    // DDS coarse address = top LUT_ADDR_WIDTH bits of the phase accumulator,
-    // so a raw LUT address must be shifted up into those top bits to build
-    // a full ACC_WIDTH-wide i_phase value that hits it.
     function automatic logic [ACC_WIDTH - 1 : 0] addr_to_phase(
         input logic [LUT_ADDR_WIDTH - 1 : 0] addr
     );
@@ -66,6 +63,20 @@ module sine_lut_tb
         end
     endfunction
 
+    function automatic logic signed [DATA_WIDTH - 1 : 0] golden_q(
+        input logic [ACC_WIDTH - 1 : 0] phase_val
+    );
+        golden_q = golden_amplitude(phase_val[ACC_WIDTH - 1 -: LUT_ADDR_WIDTH]);
+    endfunction
+
+    function automatic logic signed [DATA_WIDTH - 1 : 0] golden_i(
+        input logic [ACC_WIDTH - 1 : 0] phase_val
+    );
+        logic [ACC_WIDTH - 1 : 0] shifted_phase;
+        shifted_phase = phase_val + QUARTER_TURN;
+        golden_i = golden_amplitude(shifted_phase[ACC_WIDTH - 1 -: LUT_ADDR_WIDTH]);
+    endfunction
+
     task automatic apply_reset();
         rst_n <= 0;
         phase <= 0;
@@ -77,38 +88,49 @@ module sine_lut_tb
 
     task automatic drive_and_capture(
         input  logic [ACC_WIDTH - 1 : 0] phase_val,
-        output logic signed [DATA_WIDTH - 1 : 0] captured
+        output logic signed [DATA_WIDTH - 1 : 0] captured_i,
+        output logic signed [DATA_WIDTH - 1 : 0] captured_q
     );
         @(negedge clk);
         phase <= phase_val;
         @(posedge clk);
         @(negedge clk);
-        captured = amplitude;
+        captured_i = amplitude_i;
+        captured_q = amplitude_q;
     endtask
 
     task automatic check_phase(input logic [ACC_WIDTH - 1 : 0] phase_val);
-        logic signed [DATA_WIDTH - 1 : 0] got, expected;
-        drive_and_capture(phase_val, got);
-        expected = golden_amplitude(phase_val[ACC_WIDTH - 1 -: LUT_ADDR_WIDTH]);
-        assert (got == expected)
+        logic signed [DATA_WIDTH - 1 : 0] got_i, got_q, expected_i, expected_q;
+        drive_and_capture(phase_val, got_i, got_q);
+        expected_i = golden_i(phase_val);
+        expected_q = golden_q(phase_val);
+        assert (got_i == expected_i)
         else begin
-            $display("phase=0x%06x: required %0d, current is %0d", phase_val, expected, got);
+            $display("phase=0x%06x: o_i required %0d, current is %0d", phase_val, expected_i, got_i);
+            $stop;
+        end
+        assert (got_q == expected_q)
+        else begin
+            $display("phase=0x%06x: o_q required %0d, current is %0d", phase_val, expected_q, got_q);
             $stop;
         end
     endtask
 
-    // after reset, the pipeline registers are cleared and amplitude must be 0
     task automatic reset_test();
         $display("[TEST] reset_test");
         apply_reset();
-        assert (amplitude == 0)
+        assert (amplitude_i == 0)
         else begin
-            $display("Required 0, current is %0d", amplitude);
+            $display("o_i: required 0, current is %0d", amplitude_i);
+            $stop;
+        end
+        assert (amplitude_q == 0)
+        else begin
+            $display("o_q: required 0, current is %0d", amplitude_q);
             $stop;
         end
     endtask
 
-    // quadrant boundaries, where the mirroring/sign logic is most likely to break
     task automatic boundary_test();
         $display("[TEST] boundary_test");
         apply_reset();
@@ -123,12 +145,8 @@ module sine_lut_tb
         check_phase(addr_to_phase(10'h3FF)); // quadrant 3, addr_in_quadrant = max -> mirrors to rom[0]
     endtask
 
-    // structural invariant of a quarter-wave LUT sine, checked directly on
-    // DUT outputs (no dependence on rom_model / the golden function):
-    //   quadrant 2 must be the negation of quadrant 0 at the same addr_in_quadrant
-    //   quadrant 1 must mirror quadrant 0 (addr_in_quadrant reversed)
     task automatic quadrant_symmetry_test();
-        logic signed [DATA_WIDTH - 1 : 0] q0, q1, q2, q3;
+        logic signed [DATA_WIDTH - 1 : 0] unused_i, q0, q1, q2, q3;
         logic [QUAD_ADDR_WIDTH - 1 : 0] addr, mirrored_addr;
         $display("[TEST] quadrant_symmetry_test");
         apply_reset();
@@ -137,23 +155,23 @@ module sine_lut_tb
             addr          = a[QUAD_ADDR_WIDTH-1:0];
             mirrored_addr = (ROM_DEPTH - 1 - a);
 
-            drive_and_capture(addr_to_phase({2'b00, addr}), q0);
-            drive_and_capture(addr_to_phase({2'b10, addr}), q2);
+            drive_and_capture(addr_to_phase({2'b00, addr}), unused_i, q0);
+            drive_and_capture(addr_to_phase({2'b10, addr}), unused_i, q2);
             assert (q2 == -q0)
             else begin
                 $display("addr_in_quadrant=%0d: quad2 (%0d) != -quad0 (%0d)", a, q2, q0);
                 $stop;
             end
 
-            drive_and_capture(addr_to_phase({2'b01, addr}), q1);
-            drive_and_capture(addr_to_phase({2'b00, mirrored_addr}), q0);
+            drive_and_capture(addr_to_phase({2'b01, addr}), unused_i, q1);
+            drive_and_capture(addr_to_phase({2'b00, mirrored_addr}), unused_i, q0);
             assert (q1 == q0)
             else begin
                 $display("addr_in_quadrant=%0d: quad1 (%0d) != mirrored quad0 (%0d)", a, q1, q0);
                 $stop;
             end
 
-            drive_and_capture(addr_to_phase({2'b11, a[QUAD_ADDR_WIDTH-1:0]}), q3);
+            drive_and_capture(addr_to_phase({2'b11, a[QUAD_ADDR_WIDTH-1:0]}), unused_i, q3);
             assert (q3 == -q1)
             else begin
                 $display("addr_in_quadrant=%0d: quad3 (%0d) != -quad1 (%0d)", a, q3, q1);
@@ -162,10 +180,7 @@ module sine_lut_tb
         end
     endtask
 
-    // the low (ACC_WIDTH - LUT_ADDR_WIDTH) bits of i_phase are the
-    // fine/fractional phase: sine_lut takes its ROM address from the top
-    // LUT_ADDR_WIDTH bits only, so the low bits must have no effect on
-    // o_amplitude within a single sample
+
     task automatic unused_bits_test();
         logic [ACC_WIDTH - 1 : 0] phase_val;
         $display("[TEST] unused_bits_test");
@@ -177,13 +192,30 @@ module sine_lut_tb
         end
     endtask
 
-    // randomized phases checked against the golden model
     task automatic randomized_test(int n_cycles);
         $display("[TEST] randomized_test");
         apply_reset();
 
         for (int i = 0; i < n_cycles; i++) begin
             check_phase($urandom_range((1 << ACC_WIDTH) - 1, 0));
+        end
+    endtask
+
+    task automatic quadrature_relationship_test(int n_cycles);
+        logic [ACC_WIDTH - 1 : 0] p;
+        logic signed [DATA_WIDTH - 1 : 0] i_at_p, q_at_p, unused_i, q_at_p_plus_90;
+        $display("[TEST] quadrature_relationship_test");
+        apply_reset();
+
+        for (int k = 0; k < n_cycles; k++) begin
+            p = $urandom_range((1 << ACC_WIDTH) - 1, 0);
+            drive_and_capture(p, i_at_p, q_at_p);
+            drive_and_capture(p + QUARTER_TURN, unused_i, q_at_p_plus_90);
+            assert (i_at_p == q_at_p_plus_90)
+            else begin
+                $display("phase=0x%06x: o_i (%0d) != o_q at phase+90deg (%0d)", p, i_at_p, q_at_p_plus_90);
+                $stop;
+            end
         end
     endtask
 
@@ -196,6 +228,7 @@ module sine_lut_tb
         quadrant_symmetry_test();
         unused_bits_test();
         randomized_test(200);
+        quadrature_relationship_test(100);
 
         $display("ALL TESTS PASSED");
         $finish;
@@ -209,7 +242,8 @@ module sine_lut_tb
         .i_clk(clk),
         .i_rst_n(rst_n),
         .i_phase(phase),
-        .o_amplitude(amplitude)
+        .o_i(amplitude_i),
+        .o_q(amplitude_q)
     );
 
 endmodule

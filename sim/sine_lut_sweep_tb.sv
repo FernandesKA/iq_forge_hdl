@@ -13,7 +13,7 @@ module sine_lut_sweep_tb
 
     logic clk, rst_n, ce;
     logic [ACC_WIDTH - 1 : 0] ftw, phase;
-    logic signed [DATA_WIDTH - 1 : 0] amplitude;
+    logic signed [DATA_WIDTH - 1 : 0] i_amplitude, q_amplitude;
 
     initial begin
         clk = 0;
@@ -40,7 +40,7 @@ module sine_lut_sweep_tb
 
         repeat (PERIODS * LUT_PERIOD_CYCLES) @(posedge clk);
 
-        $display("Swept %0d full sine period(s) over %0d cycles - inspect o_amplitude in the waveform viewer",
+        $display("Swept %0d full sine period(s) over %0d cycles - inspect o_i/o_q in the waveform viewer",
                   PERIODS, PERIODS * LUT_PERIOD_CYCLES);
         $finish;
     end
@@ -63,7 +63,8 @@ module sine_lut_sweep_tb
         .i_clk(clk),
         .i_rst_n(rst_n),
         .i_phase(phase),
-        .o_amplitude(amplitude)
+        .o_i(i_amplitude),
+        .o_q(q_amplitude)
     );
 
 endmodule
