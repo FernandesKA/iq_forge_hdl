@@ -1,3 +1,5 @@
+`timescale 1ps/1ps
+
 module sine_lut  #(
     parameter int ACC_WIDTH = 24,
     parameter int LUT_ADDR_WIDTH = 10,
