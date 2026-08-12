@@ -5,6 +5,7 @@ RTL_SRCS   := $(wildcard rtl/*.sv)
 SIM_SRCS   := $(wildcard sim/*.sv)
 ALL_SRCS   := $(RTL_SRCS) $(SIM_SRCS)
 SINE_LUT_HEX := rtl/sine_lut.hex
+GLBL       := $(XILINX_VIVADO)/data/verilog/src/glbl.v
 
 .PHONY: all sim sim_gui compile elaborate clean
 
@@ -15,9 +16,10 @@ $(SINE_LUT_HEX): scripts/gen_sine_lut.py
 
 compile: $(ALL_SRCS) $(SINE_LUT_HEX)
 	xvlog -sv $(ALL_SRCS)
+	xvlog -sv $(GLBL)
 
 elaborate: compile
-	xelab $(TOP) -s $(SNAPSHOT)
+	xelab $(TOP) glbl -s $(SNAPSHOT) -L unisims_ver -L unimacro_ver
 
 sim: elaborate
 	xsim $(SNAPSHOT) -runall
