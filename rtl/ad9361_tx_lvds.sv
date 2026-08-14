@@ -1,4 +1,4 @@
-`timescale 1ps/1ps
+`timescale 1ns/1ns
 
 module ad9361_tx_lvds (
     input logic i_clk,
