@@ -10,10 +10,13 @@ module ad9361_tx_lvds (
     output logic o_tx_frame_p,
     output logic o_tx_frame_n,
     output logic o_fb_clk_p,
-    output logic o_fb_clk_n
+    output logic o_fb_clk_n,
+    output logic o_phase_sel
 );
 
 logic phase_sel;
+
+assign o_phase_sel = phase_sel;
 
 always_ff @(posedge i_clk, negedge i_rst_n) begin
     if (~i_rst_n) begin
@@ -56,16 +59,29 @@ OBUFDS #(
 
 logic [5:0] frame_data_q;
 
+logic [11:0] tx_i_hold;
+logic [11:0] tx_q_hold;
+
+always_ff @(negedge i_clk, negedge i_rst_n) begin
+    if (~i_rst_n) begin
+        tx_i_hold <= '0;
+        tx_q_hold <= '0;
+    end else if (phase_sel) begin
+        tx_i_hold <= i_tx_i;
+        tx_q_hold <= i_tx_q;
+    end
+end
+
 logic [5:0] tx_i_slice;
 logic [5:0] tx_q_slice;
 
 always_comb begin
     if (phase_sel) begin
-        tx_i_slice = i_tx_i[11:6];
+        tx_i_slice = tx_i_hold[11:6];
         tx_q_slice = i_tx_q[11:6];
     end else begin
-        tx_i_slice = i_tx_i[5:0];
-        tx_q_slice = i_tx_q[5:0];
+        tx_i_slice = tx_i_hold[5:0];
+        tx_q_slice = tx_q_hold[5:0];
     end
 end
 

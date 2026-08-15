@@ -1,4 +1,4 @@
-TOP        := phase_acc_tb
+TOP        := dds_tx_chain_tb
 SNAPSHOT   := $(TOP)_sim
 
 RTL_SRCS   := $(wildcard rtl/*.sv)
