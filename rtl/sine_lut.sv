@@ -44,7 +44,7 @@ module sine_lut  #(
     logic [DATA_WIDTH - 1 : 0] rom [0 : (2 ** (LUT_ADDR_WIDTH - 2)) - 1];
 
     initial begin
-        $readmemh("rtl/sine_lut.hex", rom);
+        $readmemh("sine_lut.hex", rom);
     end
 
     genvar ch;
