@@ -28,6 +28,15 @@ set_property -dict {PACKAGE_PIN J21 IOSTANDARD LVDS_25} [get_ports o_fb_clk_p]  
 set_property -dict {PACKAGE_PIN J22 IOSTANDARD LVDS_25} [get_ports o_fb_clk_n]      ; ## LA08_N
 
 
+## RESETB
+set_property -dict {PACKAGE_PIN A16 IOSTANDARD LVCMOS25} [get_ports ad9361_resetb]  ; ## LA28_P
+
+## SPI0
+set_property -dict {PACKAGE_PIN E18 IOSTANDARD LVCMOS25}                 [get_ports SPI0_SCLK_O_0]  ; ## LA26_N
+set_property -dict {PACKAGE_PIN F18 IOSTANDARD LVCMOS25 PULLTYPE PULLUP} [get_ports SPI0_SS_O_0]    ; ## LA26_P
+set_property -dict {PACKAGE_PIN E21 IOSTANDARD LVCMOS25}                 [get_ports SPI0_MOSI_O_0]  ; ## LA27_P
+set_property -dict {PACKAGE_PIN D21 IOSTANDARD LVCMOS25}                 [get_ports SPI0_MISO_I_0]  ; ## LA27_N
+
 ## ============================================================
 ## TIMING CONSTRAINTS
 ## ============================================================
