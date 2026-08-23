@@ -7,16 +7,14 @@ if {$argc > 0} {
     set PLATFORM "rk7020f"
 }
 
-array set PART_OF {
-    rk7020f    xc7z020clg484-2
-    pluto_sky  xc7z020clg400-2
+set PART_FILE "platforms/$PLATFORM/part.txt"
+if {![file exists $PART_FILE]} {
+    error "Unknown platform '$PLATFORM'. No $PART_FILE found."
 }
+set fh [open $PART_FILE r]
+set PART [string trim [read $fh]]
+close $fh
 
-if {![info exists PART_OF($PLATFORM)]} {
-    error "Unknown platform '$PLATFORM'. Known platforms: [array names PART_OF]"
-}
-
-set PART $PART_OF($PLATFORM)
 set XDC "constraints/$PLATFORM/dds_tx_chain.xdc"
 
 file mkdir reports

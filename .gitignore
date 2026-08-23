@@ -1,6 +1,8 @@
 # Vivado/xsim simulation artifacts
 xsim.dir/
 reports/
+vivado/
+dumps/
 .Xil/
 *.jou
 *.log
