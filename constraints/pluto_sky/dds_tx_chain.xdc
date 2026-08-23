@@ -32,6 +32,10 @@ set_property -dict {PACKAGE_PIN U15 IOSTANDARD LVDS_25} [get_ports o_fb_clk_n]
 ## RESETB
 set_property -dict {PACKAGE_PIN R19 IOSTANDARD LVCMOS25} [get_ports ad9361_resetb]
 
+## ENABLE / TXNRX
+set_property -dict {PACKAGE_PIN T15 IOSTANDARD LVCMOS25} [get_ports ad9361_enable]
+set_property -dict {PACKAGE_PIN P18 IOSTANDARD LVCMOS25} [get_ports ad9361_txnrx]
+
 ## SPI0
 set_property -dict {PACKAGE_PIN V18 IOSTANDARD LVCMOS25}                 [get_ports SPI0_SCLK_O_0]
 set_property -dict {PACKAGE_PIN R17 IOSTANDARD LVCMOS25 PULLTYPE PULLUP} [get_ports SPI0_SS_O_0]
