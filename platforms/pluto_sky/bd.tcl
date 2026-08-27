@@ -285,6 +285,21 @@ proc create_root_design { parentCell } {
   ] $slice_ad9361_txnrx
 
 
+  # Create instance: const_spi0_ss_i, and set properties
+  set const_spi0_ss_i [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlconstant:1.1 const_spi0_ss_i ]
+  set_property CONFIG.CONST_VAL {1} $const_spi0_ss_i
+
+
+  # Create instance: const_spi0_sclk_i, and set properties
+  set const_spi0_sclk_i [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlconstant:1.1 const_spi0_sclk_i ]
+  set_property CONFIG.CONST_VAL {0} $const_spi0_sclk_i
+
+
+  # Create instance: const_spi0_mosi_i, and set properties
+  set const_spi0_mosi_i [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlconstant:1.1 const_spi0_mosi_i ]
+  set_property CONFIG.CONST_VAL {0} $const_spi0_mosi_i
+
+
   # Create interface connections
   connect_bd_intf_net -intf_net processing_system7_0_DDR [get_bd_intf_ports DDR] [get_bd_intf_pins processing_system7_0/DDR]
   connect_bd_intf_net -intf_net processing_system7_0_FIXED_IO [get_bd_intf_ports FIXED_IO] [get_bd_intf_pins processing_system7_0/FIXED_IO]
@@ -302,6 +317,12 @@ proc create_root_design { parentCell } {
   [get_bd_pins dds_tx_chain_wrapper_0/i_en]
   connect_bd_net -net const_ftw_dout  [get_bd_pins const_ftw/dout] \
   [get_bd_pins dds_tx_chain_wrapper_0/i_ftw]
+  connect_bd_net -net const_spi0_mosi_i_dout  [get_bd_pins const_spi0_mosi_i/dout] \
+  [get_bd_pins processing_system7_0/SPI0_MOSI_I]
+  connect_bd_net -net const_spi0_sclk_i_dout  [get_bd_pins const_spi0_sclk_i/dout] \
+  [get_bd_pins processing_system7_0/SPI0_SCLK_I]
+  connect_bd_net -net const_spi0_ss_i_dout  [get_bd_pins const_spi0_ss_i/dout] \
+  [get_bd_pins processing_system7_0/SPI0_SS_I]
   connect_bd_net -net dds_tx_chain_wrapper_0_o_fb_clk_n  [get_bd_pins dds_tx_chain_wrapper_0/o_fb_clk_n] \
   [get_bd_ports o_fb_clk_n]
   connect_bd_net -net dds_tx_chain_wrapper_0_o_fb_clk_p  [get_bd_pins dds_tx_chain_wrapper_0/o_fb_clk_p] \
