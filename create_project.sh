@@ -8,14 +8,14 @@ cd "$SCRIPT_DIR"
 
 if [ $# -lt 1 ]; then
     echo "Usage: $0 <platform>" >&2
-    echo "Available platforms: $(ls constraints)" >&2
+    echo "Available platforms: $(ls constraints | sed 's/\.xdc$//')" >&2
     exit 1
 fi
 
 PLATFORM="$1"
 
-if [ ! -d "constraints/$PLATFORM" ]; then
-    echo "Unknown platform '$PLATFORM'. Available platforms: $(ls constraints)" >&2
+if [ ! -f "constraints/$PLATFORM.xdc" ]; then
+    echo "Unknown platform '$PLATFORM'. Available platforms: $(ls constraints | sed 's/\.xdc$//')" >&2
     exit 1
 fi
 

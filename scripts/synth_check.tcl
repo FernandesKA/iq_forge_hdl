@@ -15,7 +15,7 @@ set fh [open $PART_FILE r]
 set PART [string trim [read $fh]]
 close $fh
 
-set XDC "constraints/$PLATFORM/dds_tx_chain.xdc"
+set XDC "constraints/$PLATFORM.xdc"
 
 file mkdir reports
 

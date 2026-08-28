@@ -14,11 +14,11 @@ set fh [open $PART_FILE r]
 set PART [string trim [read $fh]]
 close $fh
 
-set XDC      "constraints/$PLATFORM/dds_tx_chain.xdc"
+set XDC      "constraints/$PLATFORM.xdc"
 set BD_TCL   "platforms/$PLATFORM/bd.tcl"
 set PROJ_DIR "vivado/$PLATFORM"
 
-create_project -force dds_tx_chain $PROJ_DIR -part $PART
+create_project -force iq_forge_hdl $PROJ_DIR -part $PART
 
 add_files -fileset sources_1 [glob rtl/*.sv rtl/*.v]
 set_property top dds_tx_chain [get_filesets sources_1]
@@ -39,4 +39,4 @@ add_files -fileset constrs_1 $XDC
 
 update_compile_order -fileset sources_1
 
-puts "---- Project created for platform '$PLATFORM' (part $PART) at $PROJ_DIR/dds_tx_chain.xpr ----"
+puts "---- Project created for platform '$PLATFORM' (part $PART) at $PROJ_DIR/iq_forge_hdl.xpr ----"

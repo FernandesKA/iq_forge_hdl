@@ -1,49 +1,59 @@
 # iq_forge_hdl
 
-DDS TX chain (`dds_tx_chain`) for AD936x, two Zynq-7020 boards.
+HDL-проект для AD936x на связке с Zynq-7020.
 
-## Platforms
+## Платформы
 
-| Platform    | Part              |
+| Платформа   | Part              |
 |-------------|-------------------|
 | `rk7020f`   | xc7z020clg484-2   |
 | `pluto_sky` | xc7z020clg400-2   |
 
-Per-platform files: `platforms/<platform>/` (part, block design), `constraints/<platform>/` (XDC).
+Файлы под платформу: `platforms/<платформа>/` (part, block design),
+`constraints/<платформа>.xdc`.
 
-## Build
-
-```
-./create_project.sh <platform>   # -> vivado/<platform>/dds_tx_chain.xpr
-./build.sh <platform> [jobs]     # synth + impl + bitstream, headless (jobs default 4)
-```
-
-Bitstream: `vivado/<platform>/dds_tx_chain.runs/impl_1/*.bit` (deploy-ready
-byte-swapped `*_swapped.bin` next to it). Reports: `reports/<platform>/`.
-
-Or open the `.xpr` from `create_project.sh` in the Vivado GUI instead of `build.sh`.
-
-## Pull GUI changes back
-
-RTL/XDC edits from Vivado land directly in `rtl/` / `constraints/<platform>/`.
-For project or block-design state:
+## Развернуть и собрать проект
 
 ```
-./dump_project.sh <platform>
-./dump_bd.sh <platform>
+./create_project.sh <платформа>   # -> vivado/<платформа>/iq_forge_hdl.xpr
+./build.sh <платформа> [jobs]     # синтез + имплементация + битстрим, без GUI (jobs по умолчанию 4)
 ```
 
-Dumps to a script — diff and merge by hand.
+`create_project.sh` только создаёт проект — открыть `.xpr` можно и в GUI
+Vivado вместо `build.sh`.
 
-## Simulate
+Результат `build.sh`: `vivado/<платформа>/iq_forge_hdl.runs/impl_1/*.bit`
+(рядом — готовый к заливке на плату `*_swapped.bin`, байты переставлены под
+Zynq fpga_manager). Отчёты — в `reports/<платформа>/`.
+
+## Забрать правки из GUI (дамп)
+
+RTL и XDC-правки, сохранённые в Vivado, попадают прямо в `rtl/` и
+`constraints/<платформа>.xdc` — тут ничего делать не надо.
+
+Для изменений уровня проекта (новый IP, filesets, стратегии запуска):
+
+```
+./dump_project.sh <платформа>
+```
+
+Для правок block design (новый IP, DMA, разводка):
+
+```
+./dump_bd.sh <платформа>
+```
+
+Оба дампа пишут в скрипт — дифф и мёрж руками.
+
+## Симуляция
 
 ```
 make sim        # batch
-make sim_gui    # waveform viewer
+make sim_gui    # с просмотром waveform
 ```
 
-## Quick synth check (PL only, no project)
+## Быстрая проверка синтеза (без проекта, только PL)
 
 ```
-vivado -mode batch -source scripts/synth_check.tcl -tclargs <platform>
+vivado -mode batch -source scripts/synth_check.tcl -tclargs <платформа>
 ```

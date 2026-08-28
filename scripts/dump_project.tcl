@@ -6,7 +6,7 @@ if {$argc > 0} {
     set PLATFORM "rk7020f"
 }
 
-set XPR "vivado/$PLATFORM/dds_tx_chain.xpr"
+set XPR "vivado/$PLATFORM/iq_forge_hdl.xpr"
 
 if {![file exists $XPR]} {
     error "No project found at $XPR. Run ./create_project.sh $PLATFORM first."

@@ -13,8 +13,8 @@ fi
 
 PLATFORM="$1"
 
-if [ ! -f "vivado/$PLATFORM/dds_tx_chain.xpr" ]; then
-    echo "No project found at vivado/$PLATFORM/dds_tx_chain.xpr. Run ./create_project.sh $PLATFORM first." >&2
+if [ ! -f "vivado/$PLATFORM/iq_forge_hdl.xpr" ]; then
+    echo "No project found at vivado/$PLATFORM/iq_forge_hdl.xpr. Run ./create_project.sh $PLATFORM first." >&2
     exit 1
 fi
 

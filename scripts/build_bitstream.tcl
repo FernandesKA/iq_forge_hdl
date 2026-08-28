@@ -13,7 +13,7 @@ if {$argc > 1} {
 }
 
 set PROJ_DIR "vivado/$PLATFORM"
-set XPR "$PROJ_DIR/dds_tx_chain.xpr"
+set XPR "$PROJ_DIR/iq_forge_hdl.xpr"
 
 if {![file exists $XPR]} {
     error "No project found at $XPR. Run ./create_project.sh $PLATFORM first."
@@ -39,13 +39,13 @@ proc reset_and_launch {run jobs args} {
 reset_and_launch synth_1 $JOBS
 
 if {[get_property PROGRESS [get_runs synth_1]] != "100%"} {
-    error "Synthesis failed for $PLATFORM -- check $PROJ_DIR/dds_tx_chain.runs/synth_1/runme.log"
+    error "Synthesis failed for $PLATFORM -- check $PROJ_DIR/iq_forge_hdl.runs/synth_1/runme.log"
 }
 
 reset_and_launch impl_1 $JOBS -to_step write_bitstream
 
 if {[get_property PROGRESS [get_runs impl_1]] != "100%"} {
-    error "Implementation/bitstream generation failed for $PLATFORM -- check $PROJ_DIR/dds_tx_chain.runs/impl_1/runme.log"
+    error "Implementation/bitstream generation failed for $PLATFORM -- check $PROJ_DIR/iq_forge_hdl.runs/impl_1/runme.log"
 }
 
 open_run impl_1
@@ -55,8 +55,8 @@ file mkdir $REPORT_DIR
 report_timing_summary -file "$REPORT_DIR/timing_summary.rpt"
 report_utilization -file "$REPORT_DIR/utilization.rpt"
 
-set BIT [glob -nocomplain "$PROJ_DIR/dds_tx_chain.runs/impl_1/*.bit"]
-set BIN [glob -nocomplain "$PROJ_DIR/dds_tx_chain.runs/impl_1/*.bin"]
+set BIT [glob -nocomplain "$PROJ_DIR/iq_forge_hdl.runs/impl_1/*.bit"]
+set BIN [glob -nocomplain "$PROJ_DIR/iq_forge_hdl.runs/impl_1/*.bin"]
 
 # Board's fpga_manager wants the .bin byte-swapped per 32-bit word (else:
 # "could not find a sync word" in dmesg) -- write a deploy-ready copy.
@@ -71,7 +71,7 @@ if {$BIN ne ""} {
         binary scan $data i* words
         set swapped [binary format I* $words]
 
-        set DEPLOY_BIN "$PROJ_DIR/dds_tx_chain.runs/impl_1/[file rootname [file tail $BIN]]_swapped.bin"
+        set DEPLOY_BIN "$PROJ_DIR/iq_forge_hdl.runs/impl_1/[file rootname [file tail $BIN]]_swapped.bin"
         set fout [open $DEPLOY_BIN wb]
         fconfigure $fout -translation binary
         puts -nonewline $fout $swapped
