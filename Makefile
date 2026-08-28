@@ -7,9 +7,12 @@ ALL_SRCS   := $(RTL_SRCS) $(SIM_SRCS)
 SINE_LUT_HEX := rtl/sine_lut.hex
 GLBL       := $(XILINX_VIVADO)/data/verilog/src/glbl.v
 
-.PHONY: all sim sim_gui compile elaborate clean
+.PHONY: all sim sim_gui compile elaborate clean check
 
 all: sim
+
+check:
+	./check.sh
 
 $(SINE_LUT_HEX): scripts/gen_sine_lut.py
 	python3 scripts/gen_sine_lut.py
