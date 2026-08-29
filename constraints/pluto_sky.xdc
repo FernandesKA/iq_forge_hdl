@@ -49,7 +49,7 @@ set_property SEVERITY {Warning} [get_drc_checks UCIO-1]
 ## TIMING CONSTRAINTS
 ## ============================================================
 
-create_clock -name i_clk -period 25.000 [get_ports i_clk]
+create_clock -name i_clk -period 20.000 [get_ports i_clk]
 # set_property -dict {PACKAGE_PIN <TODO> IOSTANDARD <TODO>} [get_ports i_clk]
 
 create_generated_clock -name fb_clk \
