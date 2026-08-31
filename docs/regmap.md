@@ -1,9 +1,9 @@
-# AD9361 control regmap (pluto_sky)
+# Register map (pluto_sky)
 
-PL side only exposes AD9361's three hardware control pins as an AXI GPIO.
-Register-level AD9361 configuration itself goes over `SPI0` (PS7 hard SPI0,
-EMIO'd to `SPI0_{SCLK,SS,MOSI,MISO}_0` -- see AD9361 datasheet for that
-register map, it's not duplicated here).
+PL side exposes AD9361's three hardware control pins and the DDS TX chain's
+enable via AXI GPIO. Register-level AD9361 configuration itself goes over
+`SPI0` (PS7 hard SPI0, EMIO'd to `SPI0_{SCLK,SS,MOSI,MISO}_0` -- see AD9361
+datasheet for that register map, it's not duplicated here).
 
 ## `axi_gpio_ad9361_ctrl` -- base `0x4120_0000`
 
@@ -42,7 +42,41 @@ sequence, so either the chip still isn't coming up for another reason, or
 `SPI0_MISO_I_0` isn't wired to something that drives it. See git history /
 project notes for the debugging trail.
 
+## `axi_gpio_dds_ctrl` -- base `0x4121_0000`
+
+Enables/disables the `dds_tx_chain` sine generator (`dds_tx_chain_wrapper_0`
+in the block design). When disabled the phase accumulator is held (frozen,
+not reset) and the I/Q output is forced to zero -- see
+`rtl/dds_tx_chain.sv` and `sim/dds_tx_chain_tb.sv`'s `disable_test` for the
+exact behavior.
+
+| Offset  | Register    | Access | Reset | Description                          |
+|---------|-------------|--------|-------|---------------------------------------|
+| `0x00`  | `GPIO_DATA` | RW     | `0x0` | 1-bit output vector, bit below        |
+
+`C_ALL_OUTPUTS=1` (fixed direction, no `GPIO_TRI` register).
+
+### `GPIO_DATA` bits
+
+| Bit | Signal   | Target                       | Idle/reset value | Notes                          |
+|-----|----------|-------------------------------|-------------------|--------------------------------|
+| 0   | `dds_en` | `dds_tx_chain_wrapper_0/i_en` | `0` (disabled)    | `1` = sine generation running. |
+
+After bitstream load the register reads `0x0` -- DDS output stays silent
+until software writes `0x1`. The frequency tuning word (`i_ftw`) is still
+hardwired to a constant (`const_ftw`, `335544`) on both platforms -- no
+register for frequency control yet.
+
+```
+devmem 0x41210000 32 0x1   # enable DDS sine output
+devmem 0x41210000 32 0x0   # disable
+```
+
 ## Platform coverage
 
-`pluto_sky` only. `rk7020f`'s block design still ties these three signals
-to fixed constants (`platforms/rk7020f/bd.tcl`) -- no GPIO there yet.
+`pluto_sky` only for both registers above. `rk7020f`'s block design still
+ties the AD9361 control pins and the DDS `i_en` to fixed constants
+(`platforms/rk7020f/bd.tcl`, `i_en` tied to `1` -- DDS always on) -- it has
+no AXI-addressable PS-PL bridge at all yet (`M_AXI_GP0` disabled), so
+wiring either register up there is a larger change than adding the GPIO
+itself.
