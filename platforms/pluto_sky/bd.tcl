@@ -225,14 +225,6 @@ proc create_root_design { parentCell } {
      return 1
    }
   
-  # Create instance: const_ftw, and set properties
-  set const_ftw [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlconstant:1.1 const_ftw ]
-  set_property -dict [list \
-    CONFIG.CONST_VAL {335544} \
-    CONFIG.CONST_WIDTH {24} \
-  ] $const_ftw
-
-
   # Create instance: axi_gpio_ad9361_ctrl, and set properties
   set axi_gpio_ad9361_ctrl [ create_bd_cell -type ip -vlnv xilinx.com:ip:axi_gpio:2.0 axi_gpio_ad9361_ctrl ]
   set_property -dict [list \
@@ -247,13 +239,58 @@ proc create_root_design { parentCell } {
   set_property -dict [list \
     CONFIG.C_ALL_OUTPUTS {1} \
     CONFIG.C_DOUT_DEFAULT {0x00000000} \
-    CONFIG.C_GPIO_WIDTH {1} \
+    CONFIG.C_GPIO_WIDTH {2} \
   ] $axi_gpio_dds_ctrl
+
+
+  # Create instance: axi_gpio_dds_ftw, and set properties
+  set axi_gpio_dds_ftw [ create_bd_cell -type ip -vlnv xilinx.com:ip:axi_gpio:2.0 axi_gpio_dds_ftw ]
+  set_property -dict [list \
+    CONFIG.C_ALL_OUTPUTS {1} \
+    CONFIG.C_DOUT_DEFAULT {0x00051EB8} \
+    CONFIG.C_GPIO_WIDTH {24} \
+  ] $axi_gpio_dds_ftw
+
+
+  # Create instance: slice_dds_en, and set properties
+  set slice_dds_en [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlslice:1.0 slice_dds_en ]
+  set_property -dict [list \
+    CONFIG.DIN_FROM {0} \
+    CONFIG.DIN_TO {0} \
+    CONFIG.DIN_WIDTH {2} \
+    CONFIG.DOUT_WIDTH {1} \
+  ] $slice_dds_en
+
+
+  # Create instance: slice_dds_rst, and set properties
+  set slice_dds_rst [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlslice:1.0 slice_dds_rst ]
+  set_property -dict [list \
+    CONFIG.DIN_FROM {1} \
+    CONFIG.DIN_TO {1} \
+    CONFIG.DIN_WIDTH {2} \
+    CONFIG.DOUT_WIDTH {1} \
+  ] $slice_dds_rst
+
+
+  # Create instance: dds_rst_inv, and set properties
+  set dds_rst_inv [ create_bd_cell -type ip -vlnv xilinx.com:ip:util_vector_logic:2.0 dds_rst_inv ]
+  set_property -dict [list \
+    CONFIG.C_OPERATION {not} \
+    CONFIG.C_SIZE {1} \
+  ] $dds_rst_inv
+
+
+  # Create instance: dds_rst_n_and, and set properties
+  set dds_rst_n_and [ create_bd_cell -type ip -vlnv xilinx.com:ip:util_vector_logic:2.0 dds_rst_n_and ]
+  set_property -dict [list \
+    CONFIG.C_OPERATION {and} \
+    CONFIG.C_SIZE {1} \
+  ] $dds_rst_n_and
 
 
   # Create instance: ps7_0_axi_periph, and set properties
   set ps7_0_axi_periph [ create_bd_cell -type ip -vlnv xilinx.com:ip:axi_interconnect:2.1 ps7_0_axi_periph ]
-  set_property CONFIG.NUM_MI {2} $ps7_0_axi_periph
+  set_property CONFIG.NUM_MI {3} $ps7_0_axi_periph
 
 
   # Create instance: rst_ps7_0_50M, and set properties
@@ -310,6 +347,7 @@ proc create_root_design { parentCell } {
   connect_bd_intf_net -intf_net processing_system7_0_M_AXI_GP0 [get_bd_intf_pins processing_system7_0/M_AXI_GP0] [get_bd_intf_pins ps7_0_axi_periph/S00_AXI]
   connect_bd_intf_net -intf_net ps7_0_axi_periph_M00_AXI [get_bd_intf_pins ps7_0_axi_periph/M00_AXI] [get_bd_intf_pins axi_gpio_ad9361_ctrl/S_AXI]
   connect_bd_intf_net -intf_net ps7_0_axi_periph_M01_AXI [get_bd_intf_pins ps7_0_axi_periph/M01_AXI] [get_bd_intf_pins axi_gpio_dds_ctrl/S_AXI]
+  connect_bd_intf_net -intf_net ps7_0_axi_periph_M02_AXI [get_bd_intf_pins ps7_0_axi_periph/M02_AXI] [get_bd_intf_pins axi_gpio_dds_ftw/S_AXI]
 
   # Create port connections
   connect_bd_net -net SPI0_MISO_I_0_1  [get_bd_ports SPI0_MISO_I_0] \
@@ -319,8 +357,9 @@ proc create_root_design { parentCell } {
   [get_bd_pins slice_ad9361_enable/Din] \
   [get_bd_pins slice_ad9361_txnrx/Din]
   connect_bd_net -net axi_gpio_dds_ctrl_gpio_io_o  [get_bd_pins axi_gpio_dds_ctrl/gpio_io_o] \
-  [get_bd_pins dds_tx_chain_wrapper_0/i_en]
-  connect_bd_net -net const_ftw_dout  [get_bd_pins const_ftw/dout] \
+  [get_bd_pins slice_dds_en/Din] \
+  [get_bd_pins slice_dds_rst/Din]
+  connect_bd_net -net axi_gpio_dds_ftw_gpio_io_o  [get_bd_pins axi_gpio_dds_ftw/gpio_io_o] \
   [get_bd_pins dds_tx_chain_wrapper_0/i_ftw]
   connect_bd_net -net const_spi0_mosi_i_dout  [get_bd_pins const_spi0_mosi_i/dout] \
   [get_bd_pins processing_system7_0/SPI0_MOSI_I]
@@ -328,6 +367,10 @@ proc create_root_design { parentCell } {
   [get_bd_pins processing_system7_0/SPI0_SCLK_I]
   connect_bd_net -net const_spi0_ss_i_dout  [get_bd_pins const_spi0_ss_i/dout] \
   [get_bd_pins processing_system7_0/SPI0_SS_I]
+  connect_bd_net -net dds_rst_inv_Res  [get_bd_pins dds_rst_inv/Res] \
+  [get_bd_pins dds_rst_n_and/Op2]
+  connect_bd_net -net dds_rst_n_and_Res  [get_bd_pins dds_rst_n_and/Res] \
+  [get_bd_pins dds_tx_chain_wrapper_0/i_rst_n]
   connect_bd_net -net dds_tx_chain_wrapper_0_o_fb_clk_n  [get_bd_pins dds_tx_chain_wrapper_0/o_fb_clk_n] \
   [get_bd_ports o_fb_clk_n]
   connect_bd_net -net dds_tx_chain_wrapper_0_o_fb_clk_p  [get_bd_pins dds_tx_chain_wrapper_0/o_fb_clk_p] \
@@ -347,11 +390,13 @@ proc create_root_design { parentCell } {
   [get_bd_pins rst_ps7_0_50M/slowest_sync_clk] \
   [get_bd_pins axi_gpio_ad9361_ctrl/s_axi_aclk] \
   [get_bd_pins axi_gpio_dds_ctrl/s_axi_aclk] \
+  [get_bd_pins axi_gpio_dds_ftw/s_axi_aclk] \
   [get_bd_pins ps7_0_axi_periph/M00_ACLK] \
   [get_bd_pins ps7_0_axi_periph/M01_ACLK] \
+  [get_bd_pins ps7_0_axi_periph/M02_ACLK] \
   [get_bd_pins ps7_0_axi_periph/ACLK]
   connect_bd_net -net processing_system7_0_FCLK_RESET0_N  [get_bd_pins processing_system7_0/FCLK_RESET0_N] \
-  [get_bd_pins dds_tx_chain_wrapper_0/i_rst_n] \
+  [get_bd_pins dds_rst_n_and/Op1] \
   [get_bd_pins rst_ps7_0_50M/ext_reset_in]
   connect_bd_net -net processing_system7_0_SPI0_MOSI_O  [get_bd_pins processing_system7_0/SPI0_MOSI_O] \
   [get_bd_ports SPI0_MOSI_O_0]
@@ -363,8 +408,10 @@ proc create_root_design { parentCell } {
   [get_bd_pins ps7_0_axi_periph/S00_ARESETN] \
   [get_bd_pins axi_gpio_ad9361_ctrl/s_axi_aresetn] \
   [get_bd_pins axi_gpio_dds_ctrl/s_axi_aresetn] \
+  [get_bd_pins axi_gpio_dds_ftw/s_axi_aresetn] \
   [get_bd_pins ps7_0_axi_periph/M00_ARESETN] \
   [get_bd_pins ps7_0_axi_periph/M01_ARESETN] \
+  [get_bd_pins ps7_0_axi_periph/M02_ARESETN] \
   [get_bd_pins ps7_0_axi_periph/ARESETN]
   connect_bd_net -net slice_ad9361_enable_Dout  [get_bd_pins slice_ad9361_enable/Dout] \
   [get_bd_ports ad9361_enable]
@@ -372,10 +419,15 @@ proc create_root_design { parentCell } {
   [get_bd_ports ad9361_resetb]
   connect_bd_net -net slice_ad9361_txnrx_Dout  [get_bd_pins slice_ad9361_txnrx/Dout] \
   [get_bd_ports ad9361_txnrx]
+  connect_bd_net -net slice_dds_en_Dout  [get_bd_pins slice_dds_en/Dout] \
+  [get_bd_pins dds_tx_chain_wrapper_0/i_en]
+  connect_bd_net -net slice_dds_rst_Dout  [get_bd_pins slice_dds_rst/Dout] \
+  [get_bd_pins dds_rst_inv/Op1]
 
   # Create address segments
   assign_bd_address -offset 0x41200000 -range 0x00010000 -target_address_space [get_bd_addr_spaces processing_system7_0/Data] [get_bd_addr_segs axi_gpio_ad9361_ctrl/S_AXI/Reg] -force
   assign_bd_address -offset 0x41210000 -range 0x00010000 -target_address_space [get_bd_addr_spaces processing_system7_0/Data] [get_bd_addr_segs axi_gpio_dds_ctrl/S_AXI/Reg] -force
+  assign_bd_address -offset 0x41220000 -range 0x00010000 -target_address_space [get_bd_addr_spaces processing_system7_0/Data] [get_bd_addr_segs axi_gpio_dds_ftw/S_AXI/Reg] -force
 
 
   # Restore current instance
