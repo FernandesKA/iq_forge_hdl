@@ -81,7 +81,20 @@ if {$BIN ne ""} {
     }
 }
 
+
+# .xsa (hardware platform export) -- consumed by buildroot_custom's
+# zynq-dtgen host package to regenerate the PS-side devicetree fragment
+# from the actual PL address map (AXI GPIOs etc). Needs the routed design
+# already open (open_run impl_1 above), no bitstream embedding needed since
+# it ships separately as $BIN/$DEPLOY_BIN.
+set XSA ""
+if {$BIT ne ""} {
+    set XSA "[file rootname $BIT].xsa"
+    write_hw_platform -fixed -force $XSA
+}
+
 puts "---- DONE. Platform: $PLATFORM ----"
 puts "Bitstream:  $BIT"
 puts "Deploy bin: $DEPLOY_BIN  (byte-swapped -- copy this one to the board, not the plain .bin)"
+puts "HW platform: $XSA"
 puts "Reports:    $REPORT_DIR"
