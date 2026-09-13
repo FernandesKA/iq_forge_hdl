@@ -36,6 +36,18 @@ proc reset_and_launch {run jobs args} {
     wait_on_run $run
 }
 
+# Nested IP-level out-of-context synthesis runs (e.g. block-design IPs
+# packaged from our own RTL, like dds_tx_chain_wrapper) each cache their
+# own checkpoint and don't always get marked NEEDS_REFRESH when only the
+# underlying .sv source changes -- reset_run on the top synth_1 does NOT
+# cascade into them. Force all *_synth_1 runs (top included) so edits to
+# our RTL always actually make it into the bitstream.
+foreach r [get_runs] {
+    if {[string match "*_synth_1" $r]} {
+        catch {reset_run $r}
+    }
+}
+
 reset_and_launch synth_1 $JOBS
 
 if {[get_property PROGRESS [get_runs synth_1]] != "100%"} {

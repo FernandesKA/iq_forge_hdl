@@ -26,10 +26,49 @@ always_ff @(posedge i_clk, negedge i_rst_n) begin
     end
 end
 
-fb_clk_gen fb_clk_gen_inst(
-    .i_clk(i_clk),
-    .o_fb_clk_n(o_fb_clk_n),
-    .o_fb_clk_p(o_fb_clk_p)
+// fb_clk (forwarded clock) is generated through the same register ->
+// ODDR -> OBUFDS pipeline depth/style as tx_frame/tx_d below, mirroring
+// ADI's axi_ad9361_lvds_if.v (tx_clk_p/tx_clk registers feeding the same
+// ad_data_out primitive as the data/frame signals) instead of a
+// standalone module with hardwired ODDR D1/D2 constants. The value never
+// changes (D1=0, D2=1, same 1x-i_clk-rate waveform as before) - only the
+// structural placement/timing treatment changes, to keep it matched to
+// the data path instead of being a synthesis-optimized constant tie.
+logic fb_clk_d1, fb_clk_d2;
+
+always_ff @(posedge i_clk, negedge i_rst_n) begin
+    if (~i_rst_n) begin
+        fb_clk_d1 <= 1'b0;
+        fb_clk_d2 <= 1'b1;
+    end else begin
+        fb_clk_d1 <= 1'b0;
+        fb_clk_d2 <= 1'b1;
+    end
+end
+
+logic fb_clk_q;
+
+ODDR #(
+   .DDR_CLK_EDGE("OPPOSITE_EDGE"),
+   .INIT(1'b0),
+   .SRTYPE("SYNC")
+) ODDR_fb_clk_inst (
+   .Q(fb_clk_q),
+   .C(i_clk),
+   .CE(1'b1),
+   .D1(fb_clk_d1),
+   .D2(fb_clk_d2),
+   .R(~i_rst_n),
+   .S(0)
+);
+
+OBUFDS #(
+   .IOSTANDARD("DEFAULT"),
+   .SLEW("SLOW")
+) OBUFDS_fb_clk_inst (
+   .O(o_fb_clk_p),
+   .OB(o_fb_clk_n),
+   .I(fb_clk_q)
 );
 
 logic tx_frame_q;

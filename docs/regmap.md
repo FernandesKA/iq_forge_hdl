@@ -81,17 +81,23 @@ devmem 0x41210000 32 0x0   # disable
 ## `axi_gpio_dds_ftw` -- base `0x4122_0000` (identical on both platforms)
 
 Frequency tuning word for the DDS phase accumulator
-(`dds_tx_chain_wrapper_0/i_ftw`, `ACC_WIDTH=24`). Each enabled clock the
-phase accumulator in `rtl/phase_acc.sv` adds this value to its 24-bit phase
-register, so it sets the output sine frequency:
+(`dds_tx_chain_wrapper_0/i_ftw`, `ACC_WIDTH=24`). The phase accumulator in
+`rtl/phase_acc.sv` only advances on `i_ce = i_en & lvds_phase_sel`
+(`dds_tx_chain.sv`), and `lvds_phase_sel` toggles every `i_clk` cycle
+(`ad9361_tx_lvds.sv`'s `phase_sel`) -- so it accumulates at **half** the PL
+clock rate, not the full rate. Each accumulate step adds FTW to the 24-bit
+phase register, so the output sine frequency is:
 
 ```
-f_out = FTW * f_clk / 2^24
+f_out = FTW * (f_clk / 2) / 2^24
 ```
 
 `f_clk` is `FCLK_CLK0`, which is **not** the same on both platforms:
 50 MHz on `pluto_sky`, 40 MHz on `rk7020f` -- the same FTW value therefore
-produces a different output frequency on each board.
+produces a different output frequency on each board. (`iq_forge_fw`'s
+`set_dds_frequency_hz`/`get_dds_frequency_hz` do this Hz<->FTW conversion
+for you, given `DDS_CLK_HZ` in `manifest.env` -- pass the raw `f_clk`
+there, not the halved rate, the /2 is applied internally.)
 
 | Offset  | Register    | Access | Reset       | Description                             |
 |---------|-------------|--------|-------------|-------------------------------------------|
@@ -100,12 +106,12 @@ produces a different output frequency on each board.
 `C_ALL_OUTPUTS=1` (fixed direction, no `GPIO_TRI` register). Reset value
 `0x00051EB8` = `335544` decimal, the value this was previously hardwired to
 (`const_ftw`) -- so a freshly loaded bitstream still produces a tone once
-`dds_en` is set, without software having to program the FTW first: ~1 MHz
-on `pluto_sky` (50 MHz clock), ~800 kHz on `rk7020f` (40 MHz clock).
+`dds_en` is set, without software having to program the FTW first: ~500 kHz
+on `pluto_sky` (50 MHz clock / 2), ~400 kHz on `rk7020f` (40 MHz clock / 2).
 
 ```
-devmem 0x41220000 32 0x51EB8   # reset default: ~1 MHz on pluto_sky, ~800 kHz on rk7020f
-devmem 0x41220000 32 0xA3D70   # ~2 MHz on pluto_sky, ~1.6 MHz on rk7020f
+devmem 0x41220000 32 0x51EB8   # reset default: ~500 kHz on pluto_sky, ~400 kHz on rk7020f
+devmem 0x41220000 32 0xA3D70   # ~1 MHz on pluto_sky, ~800 kHz on rk7020f
 ```
 
 ## Platform coverage
