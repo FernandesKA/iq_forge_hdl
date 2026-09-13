@@ -1,11 +1,4 @@
-## PlutoSky (AD9361 + Zynq XC7Z020CLG400-2). Pins cross-checked against the
-## vendor's own working project (Src/AD936X.xdc, OpenSourceSDRLab
-## 7020_AD936X_SDR) and schematic_PlutoSky.pdf -- both match.
-##
-## IOSTANDARD is LVDS_25/LVCMOS25 to match that proven design, even though
-## VCCO_34/VCCO_35 read as 1.8V on the schematic (which would call for
-## LVDS/LVCMOS18) -- the vendor XDC downgrades the resulting UCIO-1 DRC to
-## a Warning instead of fixing it, and it works on real hardware.
+## PlutoSky (AD9361 + Zynq XC7Z020CLG400-2)
 
 ## Tx_D[5:0]
 set_property -dict {PACKAGE_PIN V15 IOSTANDARD LVDS_25} [get_ports {o_tx_d_p[0]}]
@@ -49,14 +42,6 @@ set_property SEVERITY {Warning} [get_drc_checks UCIO-1]
 ## TIMING CONSTRAINTS
 ## ============================================================
 
-## i_clk НЕ является top-level портом -- это внутренний net блочного
-## дизайна (PS7 FCLKCLK[0]), поэтому [get_ports i_clk] тут всегда
-## резолвился в пустое множество и create_clock/create_generated_clock/
-## set_output_delay/set_false_path ниже молча не применялись (см.
-## аналогичный разбор в rk7020f.xdc). Vivado уже сам авто-создаёт клок
-## "clk_fpga_0" на этом net из свойств PS7 -- используем его напрямую.
-# set_property -dict {PACKAGE_PIN <TODO> IOSTANDARD <TODO>} [get_ports i_clk]
-
 create_generated_clock -name fb_clk \
     -source [get_pins -hierarchical -filter {NAME =~ "*ad9361_tx/ODDR_fb_clk_inst/C"}] \
     -divide_by 1 \
@@ -72,6 +57,3 @@ set_output_delay -clock fb_clk -min  0.000 [get_ports {o_tx_d_p[*] o_tx_d_n[*] o
 
 set_output_delay -clock fb_clk -clock_fall -max  1.000 -add_delay [get_ports {o_tx_d_p[*] o_tx_d_n[*] o_tx_frame_p o_tx_frame_n}]
 set_output_delay -clock fb_clk -clock_fall -min  0.000 -add_delay [get_ports {o_tx_d_p[*] o_tx_d_n[*] o_tx_frame_p o_tx_frame_n}]
-
-## (no hold false-path here -- want the real, computed hold margin for
-## this interface, not a blanket exception hiding it; see rk7020f.xdc)

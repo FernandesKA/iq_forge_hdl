@@ -26,14 +26,6 @@ always_ff @(posedge i_clk, negedge i_rst_n) begin
     end
 end
 
-// fb_clk (forwarded clock) is generated through the same register ->
-// ODDR -> OBUFDS pipeline depth/style as tx_frame/tx_d below, mirroring
-// ADI's axi_ad9361_lvds_if.v (tx_clk_p/tx_clk registers feeding the same
-// ad_data_out primitive as the data/frame signals) instead of a
-// standalone module with hardwired ODDR D1/D2 constants. The value never
-// changes (D1=0, D2=1, same 1x-i_clk-rate waveform as before) - only the
-// structural placement/timing treatment changes, to keep it matched to
-// the data path instead of being a synthesis-optimized constant tie.
 logic fb_clk_d1, fb_clk_d2;
 
 always_ff @(posedge i_clk, negedge i_rst_n) begin

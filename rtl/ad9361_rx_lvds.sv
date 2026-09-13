@@ -1,22 +1,5 @@
 `timescale 1ns/1ns
 
-// Receives the AD9361 RX LVDS digital interface. Mirror image of
-// ad9361_tx_lvds.sv: that module launches, per i_clk period, tx_i_slice
-// on the ODDR's D1 (first half of the period) and tx_q_slice on D2
-// (second half), with o_tx_frame_p high marking the MSB (upper 6 bits)
-// half and low marking the LSB half. IDDR in SAME_EDGE_PIPELINED mode
-// naturally re-aligns both edges' captured bits together at one rising
-// clock edge - Q1 lands on the same "D1/first-half" timing as the
-// transmitter's I-slice, Q2 on the "D2/second-half" timing as the
-// Q-slice - so this is a direct structural mirror of the TX side, not a
-// re-derivation of the bit convention.
-//
-// Built to verify, via AD9361's own internal TX->RX digital loopback
-// (ad9361_bist_loopback mode=1 / DATA_PORT_LOOP_TEST_ENABLE), that data
-// sent out ad9361_tx_lvds actually arrives at the chip correctly -
-// there is no FPGA-side BIST/DMA loopback core on this port
-// (ad9361_dig_tune/ad9361_hdl_loopback are stubbed), so this is the only
-// way to get a bit-level answer instead of an indirect RF-spectrum one.
 module ad9361_rx_lvds (
     input  logic       i_clk_p,
     input  logic       i_clk_n,
@@ -95,18 +78,6 @@ module ad9361_rx_lvds (
         end
     endgenerate
 
-    // frame_q1 high = this period carried the MSB (upper 6 bits) half,
-    // matching o_tx_frame_p on the TX side.
-    //
-    // d_q1/d_q2 -> Q/I (not I/Q): empirically confirmed by
-    // ad9361_rx_lvds_tb.sv (back-to-back loopback against
-    // ad9361_tx_lvds) - o_clk's rising edge (IDDR's sampling edge) lands
-    // on the fb_clk_p rising transition, which is the ad9361_tx_lvds.sv
-    // D1->D2 midpoint, so what IDDR presents as "Q1" (last-sampled-value
-    // going into this edge) is actually the tx_q_slice/D2 half, and "Q2"
-    // (this edge's fresh sample) is the following period's
-    // tx_i_slice/D1 half - opposite of the naive first-half/second-half
-    // reading.
     logic [11:0] i_hold, q_hold;
 
     always_ff @(posedge o_clk, negedge i_rst_n) begin
