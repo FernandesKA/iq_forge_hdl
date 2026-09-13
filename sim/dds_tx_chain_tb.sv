@@ -112,6 +112,12 @@ module dds_tx_chain_tb;
         expected_sq = full_scale * full_scale;
         tolerance   = expected_sq * 0.05; // 5% запас на квантование LUT
 
+        // одна лишняя выборка на прогрев дополнительного pipeline-регистра
+        // tx_i/tx_q перед ad9361_tx_lvds (dds_tx_chain.sv) -- сразу после
+        // en первый принятый отсчёт ещё может быть тем самым "нулевым"
+        // значением, что было до включения.
+        receive_sample(got_i, got_q);
+
         for (int k = 0; k < n_samples; k++) begin
             receive_sample(got_i, got_q);
 
@@ -131,9 +137,11 @@ module dds_tx_chain_tb;
     endtask
 
     // ------------------------------------------------------------------
-    // TEST 3: отключение en в процессе генерации -- следующий же принятый
+    // TEST 3: отключение en в процессе генерации -- второй принятый
     // отсчёт должен быть строго нулевым, без "хвоста" от предыдущего
-    // ненулевого состояния.
+    // ненулевого состояния. (Один отсчёт "хвоста" теперь ожидаем и не
+    // проверяем -- см. pipeline-регистр tx_i/tx_q в dds_tx_chain.sv,
+    // добавленный для timing closure на повышенной i_clk.)
     // ------------------------------------------------------------------
     task automatic disable_test();
         logic signed [DATA_WIDTH-1:0] got_i, got_q;
@@ -141,6 +149,7 @@ module dds_tx_chain_tb;
 
         en = 0;
 
+        receive_sample(got_i, got_q);
         receive_sample(got_i, got_q);
 
         assert (got_i == 0)
