@@ -300,7 +300,7 @@ proc create_root_design { parentCell } {
     CONFIG.PCW_EN_SDIO0 {1} \
     CONFIG.PCW_EN_SPI0 {1} \
     CONFIG.PCW_EN_UART0 {1} \
-    CONFIG.PCW_FPGA0_PERIPHERAL_FREQMHZ {62.5} \
+    CONFIG.PCW_FPGA0_PERIPHERAL_FREQMHZ {50} \
     CONFIG.PCW_FPGA_FCLK0_ENABLE {1} \
     CONFIG.PCW_MIO_10_IOTYPE {LVCMOS 3.3V} \
     CONFIG.PCW_MIO_10_PULLUP {enabled} \
@@ -507,7 +507,8 @@ proc create_root_design { parentCell } {
   connect_bd_net -net axi_gpio_dds_ftw_gpio_io_o  [get_bd_pins axi_gpio_dds_ftw/gpio_io_o] \
   [get_bd_pins dds_tx_chain_wrapper_0/i_ftw]
   connect_bd_net -net const_reset_n_dout  [get_bd_pins const_reset_n/dout] \
-  [get_bd_ports ad9361_resetb]
+  [get_bd_ports ad9361_resetb] \
+  [get_bd_pins processing_system7_0/SPI0_SS_I]
   connect_bd_net -net dds_rst_inv_Res  [get_bd_pins dds_rst_inv/Res] \
   [get_bd_pins dds_rst_n_and/Op2]
   connect_bd_net -net dds_rst_n_and_Res  [get_bd_pins dds_rst_n_and/Res] \
