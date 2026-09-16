@@ -48,7 +48,7 @@ project notes for the debugging trail.
 Enables/disables and resets the `dds_tx_chain` sine generator
 (`dds_tx_chain_wrapper_0` in the block design). When disabled the phase
 accumulator is held (frozen, not reset) and the I/Q output is forced to zero
--- see `rtl/dds_tx_chain.sv` and `sim/dds_tx_chain_tb.sv`'s `disable_test`
+-- see `rtl/dds/dds_tx_chain.sv` and `sim/dds_tx_chain_tb.sv`'s `disable_test`
 for the exact behavior.
 
 | Offset  | Register    | Access | Reset | Description                          |
@@ -82,7 +82,7 @@ devmem 0x41210000 32 0x0   # disable
 
 Frequency tuning word for the DDS phase accumulator
 (`dds_tx_chain_wrapper_0/i_ftw`, `ACC_WIDTH=24`). The phase accumulator in
-`rtl/phase_acc.sv` only advances on `i_ce = i_en & lvds_phase_sel`
+`rtl/dds/phase_acc.sv` only advances on `i_ce = i_en & lvds_phase_sel`
 (`dds_tx_chain.sv`), and `lvds_phase_sel` toggles every `i_clk` cycle
 (`ad9361_tx_lvds.sv`'s `phase_sel`) -- so it accumulates at **half** the PL
 clock rate, not the full rate. Each accumulate step adds FTW to the 24-bit

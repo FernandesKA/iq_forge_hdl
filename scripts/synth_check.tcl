@@ -19,7 +19,7 @@ set XDC "constraints/$PLATFORM.xdc"
 
 file mkdir reports
 
-read_verilog -sv [glob rtl/*.sv]
+read_verilog -sv [glob rtl/*.sv rtl/*/*.sv]
 read_xdc $XDC
 
 synth_design -top dds_tx_chain -part $PART

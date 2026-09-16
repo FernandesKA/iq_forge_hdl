@@ -24,7 +24,7 @@ QUARTER_DEPTH      = 2 ** QUARTER_ADDR_WIDTH  # число отсчётов в R
 # Кладём рядом с sine_lut.sv: $readmemh должен находить файл и при
 # симуляции, и при синтезе, поэтому путь фиксирован относительно
 # расположения скрипта, а не текущей рабочей директории вызова.
-OUT_FILE = Path(__file__).resolve().parent.parent / "rtl" / "sine_lut.hex"
+OUT_FILE = Path(__file__).resolve().parent.parent / "rtl" / "dds" / "sine_lut.hex"
 
 
 def to_twos_complement_hex(value_int: int, width: int) -> str:

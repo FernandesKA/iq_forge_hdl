@@ -19,7 +19,7 @@ module sine_lut_tb
     logic [DATA_WIDTH - 1 : 0] rom_model [0 : ROM_DEPTH - 1];
 
     initial begin
-        $readmemh("rtl/sine_lut.hex", rom_model);
+        $readmemh("rtl/dds/sine_lut.hex", rom_model);
     end
 
     function automatic logic [ACC_WIDTH - 1 : 0] addr_to_phase(

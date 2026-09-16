@@ -1,10 +1,10 @@
 TOP        := dds_tx_chain_tb
 SNAPSHOT   := $(TOP)_sim
 
-RTL_SRCS   := $(wildcard rtl/*.sv)
+RTL_SRCS   := $(wildcard rtl/*.sv rtl/*/*.sv)
 SIM_SRCS   := $(wildcard sim/*.sv)
 ALL_SRCS   := $(RTL_SRCS) $(SIM_SRCS)
-SINE_LUT_HEX := rtl/sine_lut.hex
+SINE_LUT_HEX := rtl/dds/sine_lut.hex
 GLBL       := $(XILINX_VIVADO)/data/verilog/src/glbl.v
 
 .PHONY: all sim sim_gui compile elaborate clean check

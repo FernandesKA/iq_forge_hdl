@@ -20,7 +20,7 @@ set PROJ_DIR "vivado/$PLATFORM"
 
 create_project -force iq_forge_hdl $PROJ_DIR -part $PART
 
-add_files -fileset sources_1 [glob rtl/*.sv rtl/*.v]
+add_files -fileset sources_1 [glob rtl/*.sv rtl/*.v rtl/*/*.sv rtl/*/*.v]
 set_property top dds_tx_chain [get_filesets sources_1]
 
 if {[file exists $BD_TCL]} {
