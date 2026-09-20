@@ -18,12 +18,24 @@ module dds_tx_chain #(
 
     logic [ACC_WIDTH - 1 : 0] phase;
     logic lvds_phase_sel;
+    logic [ACC_WIDTH - 1 : 0] lfm_ftw_reg;
+
+    lfm_ftw_generator lfm_ftw (
+        .i_clk(i_clk),
+        .i_rst_n(i_rst_n),
+        .i_load(0),
+        .i_continious(1),
+        .i_ftw_start(i_ftw),
+        .i_ftw_stop('1),
+        .i_ftw_incr(1'b1),
+        .o_ftw(lfm_ftw_reg)
+    );
 
     phase_acc #(.ACC_WIDTH(ACC_WIDTH)) ph_acc(
         .i_clk(i_clk),
         .i_rst_n(i_rst_n),
         .i_ce(i_en & lvds_phase_sel),
-        .i_ftw(i_ftw),
+        .i_ftw(lfm_ftw_reg),
         .o_phase(phase)
     );
 

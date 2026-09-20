@@ -24,7 +24,7 @@ module lfm_ftw_generator #(
         end else begin
             if (i_load) begin
                 ftw_counter <= i_ftw_start;
-            end else begin    
+            end else begin
                 if (i_continious)
                     ftw_counter <= ftw_counter + i_ftw_incr;
                 else
