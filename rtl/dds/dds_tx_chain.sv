@@ -7,7 +7,18 @@ module dds_tx_chain #(
     input i_clk,
     input i_rst_n,
     input i_en,
+    // 0 = sine at i_ftw, 1 = LFM (chirp) from lfm_ftw_generator
+    input i_mode,
     input [ACC_WIDTH - 1 : 0] i_ftw,
+    // LFM configuration, only used while i_mode = 1. See lfm_ftw_generator
+    // for the exact ramp/saturate/continious semantics. i_lfm_load is
+    // edge-triggered here (rising edge = restart the sweep from
+    // i_lfm_ftw_start), unlike the level-sensitive i_load of the generator.
+    input i_lfm_continious,
+    input i_lfm_load,
+    input [ACC_WIDTH - 1 : 0] i_lfm_ftw_start,
+    input [ACC_WIDTH - 1 : 0] i_lfm_ftw_stop,
+    input [ACC_WIDTH - 1 : 0] i_lfm_ftw_incr,
     output logic [5:0] o_tx_d_p,
     output logic [5:0] o_tx_d_n,
     output logic o_tx_frame_p,
@@ -19,23 +30,49 @@ module dds_tx_chain #(
     logic [ACC_WIDTH - 1 : 0] phase;
     logic lvds_phase_sel;
     logic [ACC_WIDTH - 1 : 0] lfm_ftw_reg;
+    logic [ACC_WIDTH - 1 : 0] phase_ftw;
 
-    lfm_ftw_generator lfm_ftw (
+    // The LFM counter only runs while LFM is selected *and* the DDS is
+    // enabled; otherwise it is held loaded at i_lfm_ftw_start, so every
+    // enable (or switch into LFM mode) starts the sweep from its beginning
+    // instead of wherever it happened to be left. A rising edge on
+    // i_lfm_load restarts a running sweep the same way (the one-shot,
+    // non-continious ramp saturates at i_lfm_ftw_stop and would otherwise
+    // stay there until the next enable).
+    logic lfm_run;
+    logic lfm_load_q;
+    logic lfm_load;
+
+    assign lfm_run = i_mode & i_en;
+
+    always_ff @(posedge i_clk, negedge i_rst_n) begin
+        if (~i_rst_n) begin
+            lfm_load_q <= 1'b0;
+        end else begin
+            lfm_load_q <= i_lfm_load;
+        end
+    end
+
+    assign lfm_load = (i_lfm_load & ~lfm_load_q) | ~lfm_run;
+
+    lfm_ftw_generator #(.ACC_WIDTH(ACC_WIDTH)) lfm_ftw (
         .i_clk(i_clk),
         .i_rst_n(i_rst_n),
-        .i_load(0),
-        .i_continious(1),
-        .i_ftw_start(i_ftw),
-        .i_ftw_stop('1),
-        .i_ftw_incr(1'b1),
+        .i_load(lfm_load),
+        .i_continious(i_lfm_continious),
+        .i_ftw_start(i_lfm_ftw_start),
+        .i_ftw_stop(i_lfm_ftw_stop),
+        .i_ftw_incr(i_lfm_ftw_incr),
         .o_ftw(lfm_ftw_reg)
     );
+
+    assign phase_ftw = i_mode ? lfm_ftw_reg : i_ftw;
 
     phase_acc #(.ACC_WIDTH(ACC_WIDTH)) ph_acc(
         .i_clk(i_clk),
         .i_rst_n(i_rst_n),
         .i_ce(i_en & lvds_phase_sel),
-        .i_ftw(lfm_ftw_reg),
+        .i_ftw(phase_ftw),
         .o_phase(phase)
     );
 
