@@ -1,205 +1,3 @@
-
-################################################################
-# This is a generated script based on design: system
-#
-# Though there are limitations about the generated script,
-# the main purpose of this utility is to make learning
-# IP Integrator Tcl commands easier.
-################################################################
-
-namespace eval _tcl {
-proc get_script_folder {} {
-   set script_path [file normalize [info script]]
-   set script_folder [file dirname $script_path]
-   return $script_folder
-}
-}
-variable script_folder
-set script_folder [_tcl::get_script_folder]
-
-################################################################
-# Check if script is running in correct Vivado version.
-################################################################
-set scripts_vivado_version 2025.1
-set current_vivado_version [version -short]
-
-if { [string first $scripts_vivado_version $current_vivado_version] == -1 } {
-   puts ""
-   if { [string compare $scripts_vivado_version $current_vivado_version] > 0 } {
-      catch {common::send_gid_msg -ssname BD::TCL -id 2042 -severity "ERROR" " This script was generated using Vivado <$scripts_vivado_version> and is being run in <$current_vivado_version> of Vivado. Sourcing the script failed since it was created with a future version of Vivado."}
-
-   } else {
-     catch {common::send_gid_msg -ssname BD::TCL -id 2041 -severity "ERROR" "This script was generated using Vivado <$scripts_vivado_version> and is being run in <$current_vivado_version> of Vivado. Please run the script in Vivado <$scripts_vivado_version> then open the design in Vivado <$current_vivado_version>. Upgrade the design by running \"Tools => Report => Report IP Status...\", then run write_bd_tcl to create an updated script."}
-
-   }
-
-   return 1
-}
-
-################################################################
-# START
-################################################################
-
-# To test this script, run the following commands from Vivado Tcl console:
-# source system_script.tcl
-
-
-# The design that will be created by this Tcl script contains the following 
-# module references:
-# dds_tx_chain_wrapper, ad9361_rx_lvds_wrapper
-
-# Please add the sources of those modules before sourcing this Tcl script.
-
-# If there is no project opened, this script will create a
-# project, but make sure you do not have an existing project
-# <./myproj/project_1.xpr> in the current working folder.
-
-set list_projs [get_projects -quiet]
-if { $list_projs eq "" } {
-   create_project project_1 myproj -part xc7z020clg484-2
-}
-
-
-# CHANGE DESIGN NAME HERE
-variable design_name
-set design_name system
-
-# If you do not already have an existing IP Integrator design open,
-# you can create a design using the following command:
-#    create_bd_design $design_name
-
-# Creating design if needed
-set errMsg ""
-set nRet 0
-
-set cur_design [current_bd_design -quiet]
-set list_cells [get_bd_cells -quiet]
-
-if { ${design_name} eq "" } {
-   # USE CASES:
-   #    1) Design_name not set
-
-   set errMsg "Please set the variable <design_name> to a non-empty value."
-   set nRet 1
-
-} elseif { ${cur_design} ne "" && ${list_cells} eq "" } {
-   # USE CASES:
-   #    2): Current design opened AND is empty AND names same.
-   #    3): Current design opened AND is empty AND names diff; design_name NOT in project.
-   #    4): Current design opened AND is empty AND names diff; design_name exists in project.
-
-   if { $cur_design ne $design_name } {
-      common::send_gid_msg -ssname BD::TCL -id 2001 -severity "INFO" "Changing value of <design_name> from <$design_name> to <$cur_design> since current design is empty."
-      set design_name [get_property NAME $cur_design]
-   }
-   common::send_gid_msg -ssname BD::TCL -id 2002 -severity "INFO" "Constructing design in IPI design <$cur_design>..."
-
-} elseif { ${cur_design} ne "" && $list_cells ne "" && $cur_design eq $design_name } {
-   # USE CASES:
-   #    5) Current design opened AND has components AND same names.
-
-   set errMsg "Design <$design_name> already exists in your project, please set the variable <design_name> to another value."
-   set nRet 1
-} elseif { [get_files -quiet ${design_name}.bd] ne "" } {
-   # USE CASES: 
-   #    6) Current opened design, has components, but diff names, design_name exists in project.
-   #    7) No opened design, design_name exists in project.
-
-   set errMsg "Design <$design_name> already exists in your project, please set the variable <design_name> to another value."
-   set nRet 2
-
-} else {
-   # USE CASES:
-   #    8) No opened design, design_name not in project.
-   #    9) Current opened design, has components, but diff names, design_name not in project.
-
-   common::send_gid_msg -ssname BD::TCL -id 2003 -severity "INFO" "Currently there is no design <$design_name> in project, so creating one..."
-
-   create_bd_design $design_name
-
-   common::send_gid_msg -ssname BD::TCL -id 2004 -severity "INFO" "Making design <$design_name> as current_bd_design."
-   current_bd_design $design_name
-
-}
-
-common::send_gid_msg -ssname BD::TCL -id 2005 -severity "INFO" "Currently the variable <design_name> is equal to \"$design_name\"."
-
-if { $nRet != 0 } {
-   catch {common::send_gid_msg -ssname BD::TCL -id 2006 -severity "ERROR" $errMsg}
-   return $nRet
-}
-
-set bCheckIPsPassed 1
-##################################################################
-# CHECK IPs
-##################################################################
-set bCheckIPs 1
-if { $bCheckIPs == 1 } {
-   set list_check_ips "\ 
-xilinx.com:ip:processing_system7:5.5\
-xilinx.com:ip:xlconstant:1.1\
-xilinx.com:ip:axi_gpio:2.0\
-xilinx.com:ip:xlslice:1.0\
-xilinx.com:ip:util_vector_logic:2.0\
-xilinx.com:ip:proc_sys_reset:5.0\
-"
-
-   set list_ips_missing ""
-   common::send_gid_msg -ssname BD::TCL -id 2011 -severity "INFO" "Checking if the following IPs exist in the project's IP catalog: $list_check_ips ."
-
-   foreach ip_vlnv $list_check_ips {
-      set ip_obj [get_ipdefs -all $ip_vlnv]
-      if { $ip_obj eq "" } {
-         lappend list_ips_missing $ip_vlnv
-      }
-   }
-
-   if { $list_ips_missing ne "" } {
-      catch {common::send_gid_msg -ssname BD::TCL -id 2012 -severity "ERROR" "The following IPs are not found in the IP Catalog:\n  $list_ips_missing\n\nResolution: Please add the repository containing the IP(s) to the project." }
-      set bCheckIPsPassed 0
-   }
-
-}
-
-##################################################################
-# CHECK Modules
-##################################################################
-set bCheckModules 1
-if { $bCheckModules == 1 } {
-   set list_check_mods "\ 
-dds_tx_chain_wrapper\
-ad9361_rx_lvds_wrapper\
-"
-
-   set list_mods_missing ""
-   common::send_gid_msg -ssname BD::TCL -id 2020 -severity "INFO" "Checking if the following modules exist in the project's sources: $list_check_mods ."
-
-   foreach mod_vlnv $list_check_mods {
-      if { [can_resolve_reference $mod_vlnv] == 0 } {
-         lappend list_mods_missing $mod_vlnv
-      }
-   }
-
-   if { $list_mods_missing ne "" } {
-      catch {common::send_gid_msg -ssname BD::TCL -id 2021 -severity "ERROR" "The following module(s) are not found in the project: $list_mods_missing" }
-      common::send_gid_msg -ssname BD::TCL -id 2022 -severity "INFO" "Please add source files for the missing module(s) above."
-      set bCheckIPsPassed 0
-   }
-}
-
-if { $bCheckIPsPassed != 1 } {
-  common::send_gid_msg -ssname BD::TCL -id 2023 -severity "WARNING" "Will not continue with creation of design due to the error(s) above."
-  return 3
-}
-
-##################################################################
-# DESIGN PROCs
-##################################################################
-
-
-
-# Procedure to create entire design; Provide argument to make
-# procedure reusable. If parentCell is "", will use root.
 proc create_root_design { parentCell } {
 
   variable script_folder
@@ -263,7 +61,7 @@ proc create_root_design { parentCell } {
     CONFIG.PCW_ACT_DCI_PERIPHERAL_FREQMHZ {10.158730} \
     CONFIG.PCW_ACT_ENET0_PERIPHERAL_FREQMHZ {125.000000} \
     CONFIG.PCW_ACT_ENET1_PERIPHERAL_FREQMHZ {10.000000} \
-    CONFIG.PCW_ACT_FPGA0_PERIPHERAL_FREQMHZ {40.000000} \
+    CONFIG.PCW_ACT_FPGA0_PERIPHERAL_FREQMHZ {50.000000} \
     CONFIG.PCW_ACT_FPGA1_PERIPHERAL_FREQMHZ {10.000000} \
     CONFIG.PCW_ACT_FPGA2_PERIPHERAL_FREQMHZ {10.000000} \
     CONFIG.PCW_ACT_FPGA3_PERIPHERAL_FREQMHZ {10.000000} \
@@ -281,7 +79,7 @@ proc create_root_design { parentCell } {
     CONFIG.PCW_ACT_TTC1_CLK2_PERIPHERAL_FREQMHZ {111.111115} \
     CONFIG.PCW_ACT_UART_PERIPHERAL_FREQMHZ {100.000000} \
     CONFIG.PCW_ACT_WDT_PERIPHERAL_FREQMHZ {111.111115} \
-    CONFIG.PCW_CLK0_FREQ {40000000} \
+    CONFIG.PCW_CLK0_FREQ {50000000} \
     CONFIG.PCW_CLK1_FREQ {10000000} \
     CONFIG.PCW_CLK2_FREQ {10000000} \
     CONFIG.PCW_CLK3_FREQ {10000000} \
@@ -531,7 +329,7 @@ proc create_root_design { parentCell } {
 
   # Create instance: ps7_0_axi_periph, and set properties
   set ps7_0_axi_periph [ create_bd_cell -type ip -vlnv xilinx.com:ip:axi_interconnect:2.1 ps7_0_axi_periph ]
-  set_property CONFIG.NUM_MI {5} $ps7_0_axi_periph
+  set_property CONFIG.NUM_MI {6} $ps7_0_axi_periph
 
 
   # Create instance: rst_ps7_0_40M, and set properties
@@ -548,6 +346,11 @@ proc create_root_design { parentCell } {
      return 1
    }
   
+  # Create instance: debug_bridge_0, and set properties
+  set debug_bridge_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:debug_bridge:3.0 debug_bridge_0 ]
+  set_property CONFIG.C_DEBUG_MODE {2} $debug_bridge_0
+
+
   # Create interface connections
   connect_bd_intf_net -intf_net processing_system7_0_DDR [get_bd_intf_ports DDR] [get_bd_intf_pins processing_system7_0/DDR]
   connect_bd_intf_net -intf_net processing_system7_0_FIXED_IO [get_bd_intf_ports FIXED_IO] [get_bd_intf_pins processing_system7_0/FIXED_IO]
@@ -557,6 +360,7 @@ proc create_root_design { parentCell } {
   connect_bd_intf_net -intf_net ps7_0_axi_periph_M02_AXI [get_bd_intf_pins ps7_0_axi_periph/M02_AXI] [get_bd_intf_pins axi_gpio_lfm_start/S_AXI]
   connect_bd_intf_net -intf_net ps7_0_axi_periph_M03_AXI [get_bd_intf_pins ps7_0_axi_periph/M03_AXI] [get_bd_intf_pins axi_gpio_lfm_stop/S_AXI]
   connect_bd_intf_net -intf_net ps7_0_axi_periph_M04_AXI [get_bd_intf_pins ps7_0_axi_periph/M04_AXI] [get_bd_intf_pins axi_gpio_lfm_incr/S_AXI]
+  connect_bd_intf_net -intf_net ps7_0_axi_periph_M05_AXI [get_bd_intf_pins ps7_0_axi_periph/M05_AXI] [get_bd_intf_pins debug_bridge_0/S_AXI]
 
   # Create port connections
   connect_bd_net -net SPI0_MISO_I_0_1  [get_bd_ports SPI0_MISO_I_0] \
@@ -569,6 +373,12 @@ proc create_root_design { parentCell } {
   [get_bd_pins slice_lfm_load/Din]
   connect_bd_net -net axi_gpio_dds_ftw_gpio_io_o  [get_bd_pins axi_gpio_dds_ftw/gpio_io_o] \
   [get_bd_pins dds_tx_chain_wrapper_0/i_ftw]
+  connect_bd_net -net axi_gpio_lfm_incr_gpio_io_o  [get_bd_pins axi_gpio_lfm_incr/gpio_io_o] \
+  [get_bd_pins dds_tx_chain_wrapper_0/i_lfm_ftw_incr]
+  connect_bd_net -net axi_gpio_lfm_start_gpio_io_o  [get_bd_pins axi_gpio_lfm_start/gpio_io_o] \
+  [get_bd_pins dds_tx_chain_wrapper_0/i_lfm_ftw_start]
+  connect_bd_net -net axi_gpio_lfm_stop_gpio_io_o  [get_bd_pins axi_gpio_lfm_stop/gpio_io_o] \
+  [get_bd_pins dds_tx_chain_wrapper_0/i_lfm_ftw_stop]
   connect_bd_net -net const_reset_n_dout  [get_bd_pins const_reset_n/dout] \
   [get_bd_ports ad9361_resetb] \
   [get_bd_pins processing_system7_0/SPI0_SS_I]
@@ -616,7 +426,9 @@ proc create_root_design { parentCell } {
   [get_bd_pins ps7_0_axi_periph/M02_ACLK] \
   [get_bd_pins ps7_0_axi_periph/M03_ACLK] \
   [get_bd_pins ps7_0_axi_periph/M04_ACLK] \
-  [get_bd_pins ps7_0_axi_periph/ACLK]
+  [get_bd_pins ps7_0_axi_periph/ACLK] \
+  [get_bd_pins debug_bridge_0/s_axi_aclk] \
+  [get_bd_pins ps7_0_axi_periph/M05_ACLK]
   connect_bd_net -net processing_system7_0_FCLK_RESET0_N  [get_bd_pins processing_system7_0/FCLK_RESET0_N] \
   [get_bd_pins dds_rst_n_and/Op1] \
   [get_bd_pins rst_ps7_0_40M/ext_reset_in]
@@ -638,19 +450,15 @@ proc create_root_design { parentCell } {
   [get_bd_pins ps7_0_axi_periph/M02_ARESETN] \
   [get_bd_pins ps7_0_axi_periph/M03_ARESETN] \
   [get_bd_pins ps7_0_axi_periph/M04_ARESETN] \
-  [get_bd_pins ps7_0_axi_periph/ARESETN]
+  [get_bd_pins ps7_0_axi_periph/ARESETN] \
+  [get_bd_pins ps7_0_axi_periph/M05_ARESETN] \
+  [get_bd_pins debug_bridge_0/s_axi_aresetn]
   connect_bd_net -net slice_dds_en_Dout  [get_bd_pins slice_dds_en/Dout] \
   [get_bd_pins dds_tx_chain_wrapper_0/i_en]
-  connect_bd_net -net slice_dds_rst_Dout  [get_bd_pins slice_dds_rst/Dout] \
-  [get_bd_pins dds_rst_inv/Op1]
-  connect_bd_net -net axi_gpio_lfm_start_gpio_io_o  [get_bd_pins axi_gpio_lfm_start/gpio_io_o] \
-  [get_bd_pins dds_tx_chain_wrapper_0/i_lfm_ftw_start]
-  connect_bd_net -net axi_gpio_lfm_stop_gpio_io_o  [get_bd_pins axi_gpio_lfm_stop/gpio_io_o] \
-  [get_bd_pins dds_tx_chain_wrapper_0/i_lfm_ftw_stop]
-  connect_bd_net -net axi_gpio_lfm_incr_gpio_io_o  [get_bd_pins axi_gpio_lfm_incr/gpio_io_o] \
-  [get_bd_pins dds_tx_chain_wrapper_0/i_lfm_ftw_incr]
   connect_bd_net -net slice_dds_mode_Dout  [get_bd_pins slice_dds_mode/Dout] \
   [get_bd_pins dds_tx_chain_wrapper_0/i_mode]
+  connect_bd_net -net slice_dds_rst_Dout  [get_bd_pins slice_dds_rst/Dout] \
+  [get_bd_pins dds_rst_inv/Op1]
   connect_bd_net -net slice_lfm_continious_Dout  [get_bd_pins slice_lfm_continious/Dout] \
   [get_bd_pins dds_tx_chain_wrapper_0/i_lfm_continious]
   connect_bd_net -net slice_lfm_load_Dout  [get_bd_pins slice_lfm_load/Dout] \
@@ -659,9 +467,10 @@ proc create_root_design { parentCell } {
   # Create address segments
   assign_bd_address -offset 0x41210000 -range 0x00010000 -target_address_space [get_bd_addr_spaces processing_system7_0/Data] [get_bd_addr_segs axi_gpio_dds_ctrl/S_AXI/Reg] -force
   assign_bd_address -offset 0x41220000 -range 0x00010000 -target_address_space [get_bd_addr_spaces processing_system7_0/Data] [get_bd_addr_segs axi_gpio_dds_ftw/S_AXI/Reg] -force
+  assign_bd_address -offset 0x41250000 -range 0x00010000 -target_address_space [get_bd_addr_spaces processing_system7_0/Data] [get_bd_addr_segs axi_gpio_lfm_incr/S_AXI/Reg] -force
   assign_bd_address -offset 0x41230000 -range 0x00010000 -target_address_space [get_bd_addr_spaces processing_system7_0/Data] [get_bd_addr_segs axi_gpio_lfm_start/S_AXI/Reg] -force
   assign_bd_address -offset 0x41240000 -range 0x00010000 -target_address_space [get_bd_addr_spaces processing_system7_0/Data] [get_bd_addr_segs axi_gpio_lfm_stop/S_AXI/Reg] -force
-  assign_bd_address -offset 0x41250000 -range 0x00010000 -target_address_space [get_bd_addr_spaces processing_system7_0/Data] [get_bd_addr_segs axi_gpio_lfm_incr/S_AXI/Reg] -force
+  assign_bd_address -offset 0x43C00000 -range 0x00010000 -target_address_space [get_bd_addr_spaces processing_system7_0/Data] [get_bd_addr_segs debug_bridge_0/S_AXI/Reg0] -force
 
 
   # Restore current instance
@@ -671,5 +480,3 @@ proc create_root_design { parentCell } {
   save_bd_design
 }
 # End of create_root_design()
-
-
