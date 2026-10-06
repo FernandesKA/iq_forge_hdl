@@ -43,7 +43,7 @@ proc reset_and_launch {run jobs args} {
 # cascade into them. Force all *_synth_1 runs (top included) so edits to
 # our RTL always actually make it into the bitstream.
 foreach r [get_runs] {
-    if {[string match "*_synth_1" $r]} {
+    if {[string match "*_synth_1" $r] && ![string match "bd_*" $r]} {
         catch {reset_run $r}
     }
 }

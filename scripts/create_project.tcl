@@ -23,6 +23,16 @@ create_project -force iq_forge_hdl $PROJ_DIR -part $PART
 add_files -fileset sources_1 [glob rtl/*.sv rtl/*.v rtl/*/*.sv rtl/*/*.v]
 set_property top dds_tx_chain [get_filesets sources_1]
 
+create_ip -name ila -vendor xilinx.com -library ip -module_name ila_dds
+set_property -dict [list \
+    CONFIG.C_NUM_OF_PROBES {3} \
+    CONFIG.C_PROBE0_WIDTH {12} \
+    CONFIG.C_PROBE1_WIDTH {12} \
+    CONFIG.C_PROBE2_WIDTH {24} \
+    CONFIG.C_DATA_DEPTH {2048} \
+] [get_ips ila_dds]
+generate_target all [get_ips ila_dds]
+
 if {[file exists $BD_TCL]} {
     set design_name "system"
     create_bd_design $design_name

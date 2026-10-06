@@ -28,22 +28,22 @@ set_property -dict {PACKAGE_PIN J21 IOSTANDARD LVDS_25} [get_ports o_fb_clk_p]
 set_property -dict {PACKAGE_PIN J22 IOSTANDARD LVDS_25} [get_ports o_fb_clk_n]
 
 ## ------------------------------------------------------------
-set_property -dict {PACKAGE_PIN M19 IOSTANDARD LVDS_25 DIFF_TERM TRUE} [get_ports i_rx_clk_p]
-set_property -dict {PACKAGE_PIN M20 IOSTANDARD LVDS_25 DIFF_TERM TRUE} [get_ports i_rx_clk_n]
-set_property -dict {PACKAGE_PIN N19 IOSTANDARD LVDS_25 DIFF_TERM TRUE} [get_ports i_rx_frame_p]
-set_property -dict {PACKAGE_PIN N20 IOSTANDARD LVDS_25 DIFF_TERM TRUE} [get_ports i_rx_frame_n]
-set_property -dict {PACKAGE_PIN P17 IOSTANDARD LVDS_25 DIFF_TERM TRUE} [get_ports {i_rx_d_p[0]}]
-set_property -dict {PACKAGE_PIN P18 IOSTANDARD LVDS_25 DIFF_TERM TRUE} [get_ports {i_rx_d_n[0]}]
-set_property -dict {PACKAGE_PIN N22 IOSTANDARD LVDS_25 DIFF_TERM TRUE} [get_ports {i_rx_d_p[1]}]
-set_property -dict {PACKAGE_PIN P22 IOSTANDARD LVDS_25 DIFF_TERM TRUE} [get_ports {i_rx_d_n[1]}]
-set_property -dict {PACKAGE_PIN M21 IOSTANDARD LVDS_25 DIFF_TERM TRUE} [get_ports {i_rx_d_p[2]}]
-set_property -dict {PACKAGE_PIN M22 IOSTANDARD LVDS_25 DIFF_TERM TRUE} [get_ports {i_rx_d_n[2]}]
-set_property -dict {PACKAGE_PIN J18 IOSTANDARD LVDS_25 DIFF_TERM TRUE} [get_ports {i_rx_d_p[3]}]
-set_property -dict {PACKAGE_PIN K18 IOSTANDARD LVDS_25 DIFF_TERM TRUE} [get_ports {i_rx_d_n[3]}]
-set_property -dict {PACKAGE_PIN L21 IOSTANDARD LVDS_25 DIFF_TERM TRUE} [get_ports {i_rx_d_p[4]}]
-set_property -dict {PACKAGE_PIN L22 IOSTANDARD LVDS_25 DIFF_TERM TRUE} [get_ports {i_rx_d_n[4]}]
-set_property -dict {PACKAGE_PIN T16 IOSTANDARD LVDS_25 DIFF_TERM TRUE} [get_ports {i_rx_d_p[5]}]
-set_property -dict {PACKAGE_PIN T17 IOSTANDARD LVDS_25 DIFF_TERM TRUE} [get_ports {i_rx_d_n[5]}]
+set_property -dict {PACKAGE_PIN M19 IOSTANDARD LVDS_25 DIFF_TERM 1} [get_ports i_rx_clk_p]
+set_property -dict {PACKAGE_PIN M20 IOSTANDARD LVDS_25 DIFF_TERM 1} [get_ports i_rx_clk_n]
+set_property -dict {PACKAGE_PIN N19 IOSTANDARD LVDS_25 DIFF_TERM 1} [get_ports i_rx_frame_p]
+set_property -dict {PACKAGE_PIN N20 IOSTANDARD LVDS_25 DIFF_TERM 1} [get_ports i_rx_frame_n]
+set_property -dict {PACKAGE_PIN P17 IOSTANDARD LVDS_25 DIFF_TERM 1} [get_ports {i_rx_d_p[0]}]
+set_property -dict {PACKAGE_PIN P18 IOSTANDARD LVDS_25 DIFF_TERM 1} [get_ports {i_rx_d_n[0]}]
+set_property -dict {PACKAGE_PIN N22 IOSTANDARD LVDS_25 DIFF_TERM 1} [get_ports {i_rx_d_p[1]}]
+set_property -dict {PACKAGE_PIN P22 IOSTANDARD LVDS_25 DIFF_TERM 1} [get_ports {i_rx_d_n[1]}]
+set_property -dict {PACKAGE_PIN M21 IOSTANDARD LVDS_25 DIFF_TERM 1} [get_ports {i_rx_d_p[2]}]
+set_property -dict {PACKAGE_PIN M22 IOSTANDARD LVDS_25 DIFF_TERM 1} [get_ports {i_rx_d_n[2]}]
+set_property -dict {PACKAGE_PIN J18 IOSTANDARD LVDS_25 DIFF_TERM 1} [get_ports {i_rx_d_p[3]}]
+set_property -dict {PACKAGE_PIN K18 IOSTANDARD LVDS_25 DIFF_TERM 1} [get_ports {i_rx_d_n[3]}]
+set_property -dict {PACKAGE_PIN L21 IOSTANDARD LVDS_25 DIFF_TERM 1} [get_ports {i_rx_d_p[4]}]
+set_property -dict {PACKAGE_PIN L22 IOSTANDARD LVDS_25 DIFF_TERM 1} [get_ports {i_rx_d_n[4]}]
+set_property -dict {PACKAGE_PIN T16 IOSTANDARD LVDS_25 DIFF_TERM 1} [get_ports {i_rx_d_p[5]}]
+set_property -dict {PACKAGE_PIN T17 IOSTANDARD LVDS_25 DIFF_TERM 1} [get_ports {i_rx_d_n[5]}]
 
 
 ## RESETB
@@ -66,10 +66,10 @@ create_generated_clock -name fb_clk -source [get_pins -hierarchical -filter {NAM
 ## ------------------------------------------------------------
 ## Tx_D[5:0] / Tx_FRAME -- output delay относительно FB_CLK.
 ## ------------------------------------------------------------
-set_output_delay -clock fb_clk -max  1.000 [get_ports {o_tx_d_p[*] o_tx_d_n[*] o_tx_frame_p o_tx_frame_n}]
-set_output_delay -clock fb_clk -min  0.000 [get_ports {o_tx_d_p[*] o_tx_d_n[*] o_tx_frame_p o_tx_frame_n}]
+set_output_delay -clock fb_clk -max 1.000 [get_ports {{o_tx_d_p[*]} {o_tx_d_n[*]} o_tx_frame_p o_tx_frame_n}]
+set_output_delay -clock fb_clk -min 0.000 [get_ports {{o_tx_d_p[*]} {o_tx_d_n[*]} o_tx_frame_p o_tx_frame_n}]
 
-set_output_delay -clock fb_clk -clock_fall -max  1.000 -add_delay [get_ports {o_tx_d_p[*] o_tx_d_n[*] o_tx_frame_p o_tx_frame_n}]
-set_output_delay -clock fb_clk -clock_fall -min  0.000 -add_delay [get_ports {o_tx_d_p[*] o_tx_d_n[*] o_tx_frame_p o_tx_frame_n}]
+set_output_delay -clock fb_clk -clock_fall -max -add_delay 1.000 [get_ports {{o_tx_d_p[*]} {o_tx_d_n[*]} o_tx_frame_p o_tx_frame_n}]
+set_output_delay -clock fb_clk -clock_fall -min -add_delay 0.000 [get_ports {{o_tx_d_p[*]} {o_tx_d_n[*]} o_tx_frame_p o_tx_frame_n}]
 
 set_false_path -hold -from [get_clocks clk_fpga_0] -to [get_clocks fb_clk]

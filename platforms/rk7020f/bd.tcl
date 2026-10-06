@@ -210,6 +210,7 @@ proc create_root_design { parentCell } {
      catch {common::send_gid_msg -ssname BD::TCL -id 2096 -severity "ERROR" "Unable to referenced block <$block_name>. Please add the files for ${block_name}'s definition into the project."}
      return 1
    }
+  set_property CONFIG.EN_ILA {1} $dds_tx_chain_wrapper_0
   
   # Create instance: const_reset_n, and set properties
   set const_reset_n [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlconstant:1.1 const_reset_n ]
@@ -348,7 +349,13 @@ proc create_root_design { parentCell } {
   
   # Create instance: debug_bridge_0, and set properties
   set debug_bridge_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:debug_bridge:3.0 debug_bridge_0 ]
-  set_property CONFIG.C_DEBUG_MODE {2} $debug_bridge_0
+  set_property -dict [list \
+    CONFIG.C_DEBUG_MODE {2} \
+    CONFIG.C_NUM_BS_MASTER {1} \
+  ] $debug_bridge_0
+
+  set debug_bridge_1 [ create_bd_cell -type ip -vlnv xilinx.com:ip:debug_bridge:3.0 debug_bridge_1 ]
+  set_property CONFIG.C_DEBUG_MODE {1} $debug_bridge_1
 
 
   # Create interface connections
@@ -360,6 +367,7 @@ proc create_root_design { parentCell } {
   connect_bd_intf_net -intf_net ps7_0_axi_periph_M02_AXI [get_bd_intf_pins ps7_0_axi_periph/M02_AXI] [get_bd_intf_pins axi_gpio_lfm_start/S_AXI]
   connect_bd_intf_net -intf_net ps7_0_axi_periph_M03_AXI [get_bd_intf_pins ps7_0_axi_periph/M03_AXI] [get_bd_intf_pins axi_gpio_lfm_stop/S_AXI]
   connect_bd_intf_net -intf_net ps7_0_axi_periph_M04_AXI [get_bd_intf_pins ps7_0_axi_periph/M04_AXI] [get_bd_intf_pins axi_gpio_lfm_incr/S_AXI]
+  connect_bd_intf_net -intf_net debug_bridge_0_m0_bscan [get_bd_intf_pins debug_bridge_0/m0_bscan] [get_bd_intf_pins debug_bridge_1/S_BSCAN]
   connect_bd_intf_net -intf_net ps7_0_axi_periph_M05_AXI [get_bd_intf_pins ps7_0_axi_periph/M05_AXI] [get_bd_intf_pins debug_bridge_0/S_AXI]
 
   # Create port connections
@@ -428,6 +436,7 @@ proc create_root_design { parentCell } {
   [get_bd_pins ps7_0_axi_periph/M04_ACLK] \
   [get_bd_pins ps7_0_axi_periph/ACLK] \
   [get_bd_pins debug_bridge_0/s_axi_aclk] \
+  [get_bd_pins debug_bridge_1/clk] \
   [get_bd_pins ps7_0_axi_periph/M05_ACLK]
   connect_bd_net -net processing_system7_0_FCLK_RESET0_N  [get_bd_pins processing_system7_0/FCLK_RESET0_N] \
   [get_bd_pins dds_rst_n_and/Op1] \

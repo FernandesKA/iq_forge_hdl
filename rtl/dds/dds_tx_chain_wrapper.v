@@ -2,7 +2,8 @@
 
 module dds_tx_chain_wrapper #(
     parameter ACC_WIDTH      = 24,
-    parameter LUT_ADDR_WIDTH = 10
+    parameter LUT_ADDR_WIDTH = 10,
+    parameter EN_ILA         = 0
 ) (
     input  wire                        i_clk,
     input  wire                        i_rst_n,
@@ -21,6 +22,10 @@ module dds_tx_chain_wrapper #(
     output wire                        o_fb_clk_p,
     output wire                        o_fb_clk_n
 );
+
+    wire [11:0]              dbg_i;
+    wire [11:0]              dbg_q;
+    wire [ACC_WIDTH - 1 : 0] dbg_phase;
 
     dds_tx_chain #(
         .ACC_WIDTH(ACC_WIDTH),
@@ -41,7 +46,21 @@ module dds_tx_chain_wrapper #(
         .o_tx_frame_p(o_tx_frame_p),
         .o_tx_frame_n(o_tx_frame_n),
         .o_fb_clk_p(o_fb_clk_p),
-        .o_fb_clk_n(o_fb_clk_n)
+        .o_fb_clk_n(o_fb_clk_n),
+        .o_dbg_i(dbg_i),
+        .o_dbg_q(dbg_q),
+        .o_dbg_phase(dbg_phase)
     );
+
+    generate
+        if (EN_ILA) begin : g_ila
+            ila_dds ila_dds_inst (
+                .clk(i_clk),
+                .probe0(dbg_i),
+                .probe1(dbg_q),
+                .probe2(dbg_phase)
+            );
+        end
+    endgenerate
 
 endmodule

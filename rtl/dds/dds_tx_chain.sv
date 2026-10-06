@@ -24,7 +24,10 @@ module dds_tx_chain #(
     output logic o_tx_frame_p,
     output logic o_tx_frame_n,
     output logic o_fb_clk_p,
-    output logic o_fb_clk_n
+    output logic o_fb_clk_n,
+    output logic [11:0] o_dbg_i,
+    output logic [11:0] o_dbg_q,
+    output logic [ACC_WIDTH - 1 : 0] o_dbg_phase
 );
 
     logic [ACC_WIDTH - 1 : 0] phase;
@@ -86,6 +89,10 @@ module dds_tx_chain #(
         .o_i(sine_i),
         .o_q(sine_q)
     );
+
+    assign o_dbg_i = sine_i;
+    assign o_dbg_q = sine_q;
+    assign o_dbg_phase = phase;
 
     logic signed [DATA_WIDTH - 1 : 0] tx_i_comb, tx_q_comb;
 
