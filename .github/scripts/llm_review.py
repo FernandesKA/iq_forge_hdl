@@ -96,6 +96,10 @@ class QuotaExceeded(Exception):
 
 
 def openai_compat(prompt):
+    key = os.environ.get("LLM_API_KEY", "").strip()
+    if not key:
+        sys.exit("LLM_API_KEY is empty: add the repo secret "
+                 "(Settings -> Secrets and variables -> Actions -> Repository secrets)")
     body = {
         "model": MODEL,
         "messages": [{"role": "user", "content": prompt}],
@@ -106,7 +110,7 @@ def openai_compat(prompt):
         os.environ["LLM_URL"].rstrip("/") + "/chat/completions",
         data=json.dumps(body).encode(),
         headers={
-            "Authorization": f"Bearer {os.environ['LLM_API_KEY']}",
+            "Authorization": f"Bearer {key}",
             "Content-Type": "application/json",
         },
     )
@@ -120,7 +124,8 @@ def openai_compat(prompt):
                 raise RuntimeError(f"{MODEL}: unexpected response {raw[:200]!r}") from None
         except urllib.error.HTTPError as e:
             if e.code != 429 and e.code < 500:
-                raise
+                raise RuntimeError(f"{MODEL}: HTTP {e.code}: "
+                                   f"{e.read()[:300].decode(errors='replace')}") from None
             # Per-minute limit: wait it out. Daily limit: Retry-After is hours.
             wait = int(e.headers.get("Retry-After") or 30 * 2 ** attempt)
             if e.code == 429 and wait > 120:
