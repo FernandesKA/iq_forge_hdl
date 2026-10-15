@@ -1,6 +1,6 @@
-# PR review by GitHub Models (free tier, GITHUB_TOKEN with `models: read`) on a
-# GitHub-hosted runner. To review with the local Ollama instead: runs-on
-# [self-hosted, ollama], LLM_BACKEND: ollama, LLM_MODEL: qwen3-coder.
+# PR review by DeepSeek API on a GitHub-hosted runner; the key lives in the
+# repo secret LLM_API_KEY. To review with the local Ollama instead: runs-on
+# [self-hosted, ollama], LLM_BACKEND: ollama, LLM_MODEL: qwen3-coder, no LLM_URL/KEY.
 # pull_request_target runs this file from the base branch and never checks out
 # PR code: the script only reads the diff through the API, so a PR cannot run
 # anything on the runner machine. Only owner/collaborator PRs are reviewed.
@@ -19,7 +19,6 @@ permissions:
   contents: read
   pull-requests: write
   issues: write
-  models: read
 
 concurrency:
   group: llm-review-${{ github.event.pull_request.number || inputs.pr }}
@@ -44,5 +43,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PR_NUMBER: ${{ github.event.pull_request.number || inputs.pr }}
-          LLM_BACKEND: github
-          LLM_MODEL: openai/gpt-4.1
+          LLM_BACKEND: openai
+          LLM_URL: https://api.deepseek.com
+          LLM_MODEL: deepseek-flash
+          LLM_API_KEY: ${{ secrets.LLM_API_KEY }}

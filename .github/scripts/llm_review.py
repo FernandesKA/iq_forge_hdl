@@ -1,14 +1,15 @@
 #!/usr/bin/env python3
-"""Review a GitHub pull request with an LLM (GitHub Models or local Ollama).
+"""Review a GitHub pull request with an LLM (local Ollama or an OpenAI-compatible API).
 
 Reads the PR diff through the GitHub API (PR code is never checked out or
 executed), asks the model to review it file by file, and posts the result as
 a single PR comment that is updated in place on every new push.
 
 Env: GITHUB_TOKEN, GITHUB_REPOSITORY, PR_NUMBER
-     LLM_BACKEND: github (default) or ollama
-     github: LLM_MODEL (default openai/gpt-4.1); GITHUB_TOKEN needs `models: read`
+     LLM_BACKEND: ollama (default) or openai
      ollama: OLLAMA_URL (default http://localhost:11434), LLM_MODEL (default qwen3-coder)
+     openai: LLM_URL (base URL, e.g. https://openrouter.ai/api/v1 or
+             https://api.deepseek.com), LLM_API_KEY, LLM_MODEL (required)
 Local test without GitHub: llm_review.py --diff-file some.diff
 """
 
@@ -22,12 +23,11 @@ import urllib.error
 import urllib.request
 
 MARKER = "<!-- llm-review -->"
-BACKEND = os.environ.get("LLM_BACKEND", "github")
-MODEL = os.environ.get("LLM_MODEL") or os.environ.get("OLLAMA_MODEL") or \
-    {"github": "openai/gpt-4.1", "ollama": "qwen3-coder"}[BACKEND]
-# Chars per request; bigger patches are split. GitHub Models free tier caps a
-# request at ~8K input tokens, so keep the patch well under that.
-MAX_FILE_PATCH = {"github": 12_000, "ollama": 24_000}[BACKEND]
+BACKEND = os.environ.get("LLM_BACKEND", "ollama")
+MODEL = os.environ.get("LLM_MODEL") or os.environ.get("OLLAMA_MODEL") or "qwen3-coder"
+# Chars per request; bigger patches are split. ~24K chars fits the 16K-token
+# context set for Ollama below; hosted APIs have larger windows.
+MAX_FILE_PATCH = int(os.environ.get("LLM_MAX_PATCH", 24_000))
 MAX_FILES = 40
 SKIP_RE = re.compile(
     r"(\.lock$|package-lock\.json$|\.min\.(js|css)$|\.svg$|\.bin$|\.bit$|"
@@ -95,7 +95,7 @@ class QuotaExceeded(Exception):
     pass
 
 
-def github_models(prompt):
+def openai_compat(prompt):
     body = {
         "model": MODEL,
         "messages": [{"role": "user", "content": prompt}],
@@ -103,11 +103,10 @@ def github_models(prompt):
         "max_tokens": 1500,
     }
     req = urllib.request.Request(
-        "https://models.github.ai/inference/chat/completions",
+        os.environ["LLM_URL"].rstrip("/") + "/chat/completions",
         data=json.dumps(body).encode(),
         headers={
-            "Authorization": f"Bearer {os.environ['GITHUB_TOKEN']}",
-            "Accept": "application/vnd.github+json",
+            "Authorization": f"Bearer {os.environ['LLM_API_KEY']}",
             "Content-Type": "application/json",
         },
     )
@@ -118,9 +117,7 @@ def github_models(prompt):
             try:
                 return json.loads(raw)["choices"][0]["message"]["content"]
             except (ValueError, KeyError, IndexError):
-                # Without a valid token the endpoint answers a plain 200 "OK".
-                raise RuntimeError(f"GitHub Models: unexpected response {raw[:200]!r} "
-                                   "(token lacks `models: read`?)") from None
+                raise RuntimeError(f"{MODEL}: unexpected response {raw[:200]!r}") from None
         except urllib.error.HTTPError as e:
             if e.code != 429 and e.code < 500:
                 raise
@@ -130,7 +127,7 @@ def github_models(prompt):
                 raise QuotaExceeded(f"{MODEL}: лимит запросов, retry через {wait} с")
             if attempt == 3:
                 raise
-            print(f"  GitHub Models HTTP {e.code}, sleep {wait}s", file=sys.stderr)
+            print(f"  {MODEL}: HTTP {e.code}, sleep {wait}s", file=sys.stderr)
             time.sleep(wait)
 
 
@@ -151,7 +148,7 @@ def ollama(prompt):
 
 
 def ask(prompt):
-    text = (github_models if BACKEND == "github" else ollama)(prompt)
+    text = (openai_compat if BACKEND == "openai" else ollama)(prompt)
     # Drop reasoning blocks some models emit.
     return re.sub(r"<think>.*?</think>", "", text or "", flags=re.S).strip()
 
