@@ -7,10 +7,10 @@ and LFM (chirp) sweep parameters (both platforms) via AXI GPIO. Register-level A
 datasheet for that register map, it's not duplicated here).
 
 > **Новая карта:** управление DDS переезжает в единый блок `iq_forge_regs`
-> (`0x43C1_0000`, раздел ниже). Разделы `axi_gpio_dds_*` / `axi_gpio_lfm_*`
+> (`0x4100_0000`, раздел ниже). Разделы `axi_gpio_dds_*` / `axi_gpio_lfm_*`
 > устарели и будут удалены в PL-2.7; `axi_gpio_ad9361_ctrl` не меняется.
 
-## `iq_forge_regs` -- base `0x43C1_0000`, 4 KiB (обе платформы)
+## `iq_forge_regs` -- base `0x4100_0000`, 4 KiB (обе платформы)
 
 Единый AXI4-Lite блок управления генератором. Заменяет пять AXI GPIO
 (`axi_gpio_dds_ctrl`, `axi_gpio_dds_ftw`, `axi_gpio_lfm_{start,stop,incr}`),
@@ -24,8 +24,8 @@ datasheet for that register map, it's not duplicated here).
 
 | Параметр          | Значение                                                   |
 |-------------------|------------------------------------------------------------|
-| Base              | `0x43C1_0000`                                              |
-| Размер окна       | 4 KiB (`0x43C1_0000`..`0x43C1_0FFF`), `-range 0x1000` в `assign_bd_address` |
+| Base              | `0x4100_0000`                                              |
+| Размер окна       | 4 KiB (`0x4100_0000`..`0x4100_0FFF`), `-range 0x1000` в `assign_bd_address` |
 | Почему не `0x43C0_0000` | занят `debug_bridge_0/S_AXI/Reg0` (`rk7020f`, окно 64 KiB `0x43C0_0000`..`0x43C0_FFFF`). На `pluto_sky` он свободен, но база одна на обе платформы, чтобы firmware не ветвилась. |
 | Интерфейс         | AXI4-Lite slave, данные 32 бит, `C_S_AXI_ADDR_WIDTH = 12`  |
 | Тактирование      | `s_axi_aclk` = `FCLK_CLK0` (50 MHz) -- тот же клок, что и `dds_tx_chain_wrapper_0/i_clk`, поэтому CDC внутри блока нет |
@@ -300,7 +300,7 @@ module iq_forge_regs #(
 
 - `iq_forge_regs` подключается к свободному `M0x_AXI` `ps7_0_axi_periph`
   вместо пяти AXI GPIO; `NUM_MI` уменьшается соответственно.
-- `assign_bd_address -offset 0x43C10000 -range 0x00001000 ... [get_bd_addr_segs iq_forge_regs_0/S_AXI/reg0]`.
+- `assign_bd_address -offset 0x41000000 -range 0x00001000 ... [get_bd_addr_segs iq_forge_regs_0/S_AXI/reg0]`.
 - `processing_system7_0`: `PCW_USE_FABRIC_INTERRUPT = 1`, `PCW_IRQ_F2P_INTR = 1`,
   `o_irq` -> `IRQ_F2P[0]`. Это GIC ID 61, в device tree
   `interrupts = <0 29 4>` (SPI 29, `IRQ_TYPE_LEVEL_HIGH`).
@@ -341,48 +341,48 @@ module iq_forge_regs #(
 `f_clk = 50 MHz`. Базовая проверка:
 
 ```
-devmem 0x43C10000            # -> 0x49514647 ("IQFG")
-devmem 0x43C10004            # -> 0x00010000 (v1.0.0)
-devmem 0x43C10008 32 0xA5A55A5A
-devmem 0x43C10008            # -> 0xA5A55A5A
+devmem 0x41000000            # -> 0x49514647 ("IQFG")
+devmem 0x41000004            # -> 0x00010000 (v1.0.0)
+devmem 0x41000008 32 0xA5A55A5A
+devmem 0x41000008            # -> 0xA5A55A5A
 ```
 
 Включить синус 1 MHz:
 
 ```
-devmem 0x43C10020 32 0x000A3D71   # FTW = 1 MHz
-devmem 0x43C10010 32 0x1          # dds_en=1, mode=0 (sine)
-devmem 0x43C10010 32 0x0          # выключить
+devmem 0x41000020 32 0x000A3D71   # FTW = 1 MHz
+devmem 0x41000010 32 0x1          # dds_en=1, mode=0 (sine)
+devmem 0x41000010 32 0x0          # выключить
 ```
 
 LFM one-shot 1 -> 5 MHz за ~200 us, с прерыванием по окончании:
 
 ```
-devmem 0x43C10010 32 0x0          # DDS выключен: теневые LFM_* сразу активны
-devmem 0x43C10030 32 0x000A3D71   # LFM_START = 1 MHz
-devmem 0x43C10034 32 0x00333333   # LFM_STOP  = 5 MHz
-devmem 0x43C10038 32 0x0000010C   # LFM_INCR  = 268 FTW/такт
-devmem 0x43C10040 32 0x1          # очистить старый IRQ_STATUS.lfm_done
-devmem 0x43C10044 32 0x1          # IRQ_ENABLE.lfm_done
-devmem 0x43C10010 32 0x5          # dds_en | mode=LFM, one-shot -> свип пошёл
-devmem 0x43C10018                 # STATUS -> 0x1 после окончания свипа
-devmem 0x43C10040                 # IRQ_STATUS -> 0x1
-devmem 0x43C10040 32 0x1          # W1C
-devmem 0x43C10014 32 0x1          # CMD.lfm_restart: ещё один свип
+devmem 0x41000010 32 0x0          # DDS выключен: теневые LFM_* сразу активны
+devmem 0x41000030 32 0x000A3D71   # LFM_START = 1 MHz
+devmem 0x41000034 32 0x00333333   # LFM_STOP  = 5 MHz
+devmem 0x41000038 32 0x0000010C   # LFM_INCR  = 268 FTW/такт
+devmem 0x41000040 32 0x1          # очистить старый IRQ_STATUS.lfm_done
+devmem 0x41000044 32 0x1          # IRQ_ENABLE.lfm_done
+devmem 0x41000010 32 0x5          # dds_en | mode=LFM, one-shot -> свип пошёл
+devmem 0x41000018                 # STATUS -> 0x1 после окончания свипа
+devmem 0x41000040                 # IRQ_STATUS -> 0x1
+devmem 0x41000040 32 0x1          # W1C
+devmem 0x41000014 32 0x1          # CMD.lfm_restart: ещё один свип
 ```
 
 Сменить параметры на ходу (без выключения): записать `0x30`/`0x34`/`0x38`, затем
-`devmem 0x43C10014 32 0x1` -- новые значения вступают в силу одновременно.
+`devmem 0x41000014 32 0x1` -- новые значения вступают в силу одновременно.
 
 Тестовое прерывание без свипа:
 
 ```
-devmem 0x43C10044 32 0x2          # IRQ_ENABLE.soft
-devmem 0x43C10048 32 0x2          # IRQ_FORCE.soft -> o_irq = 1
-devmem 0x43C10040                 # -> 0x2
-devmem 0x43C10040 32 0x2          # W1C -> o_irq = 0
-devmem 0x43C10040                 # -> 0x0
-devmem 0x43C10044 32 0x0
+devmem 0x41000044 32 0x2          # IRQ_ENABLE.soft
+devmem 0x41000048 32 0x2          # IRQ_FORCE.soft -> o_irq = 1
+devmem 0x41000040                 # -> 0x2
+devmem 0x41000040 32 0x2          # W1C -> o_irq = 0
+devmem 0x41000040                 # -> 0x0
+devmem 0x41000044 32 0x0
 ```
 
 Без драйвера (UIO или свой), который снимает статус в обработчике, уровень
@@ -429,7 +429,7 @@ project notes for the debugging trail.
 
 ## `axi_gpio_dds_ctrl` -- base `0x4121_0000` (identical on both platforms)
 
-> **Устарело.** Заменяется `iq_forge_regs` (`0x43C1_0000`, см. выше);
+> **Устарело.** Заменяется `iq_forge_regs` (`0x4100_0000`, см. выше);
 > раздел удаляется в PL-2.7. Оставлен как справка для миграции firmware.
 
 Enables/disables, resets and selects the waveform of the `dds_tx_chain`
@@ -473,7 +473,7 @@ devmem 0x41210000 32 0xD   # enable + LFM mode, continious
 
 ## `axi_gpio_dds_ftw` -- base `0x4122_0000` (identical on both platforms)
 
-> **Устарело.** Заменяется `iq_forge_regs` (`0x43C1_0000`, см. выше);
+> **Устарело.** Заменяется `iq_forge_regs` (`0x4100_0000`, см. выше);
 > раздел удаляется в PL-2.7. Оставлен как справка для миграции firmware.
 
 Frequency tuning word for the DDS phase accumulator
@@ -512,7 +512,7 @@ devmem 0x41220000 32 0xA3D70   # ~1 MHz
 
 ## `axi_gpio_lfm_start` / `_stop` / `_incr` -- bases `0x4123_0000` / `0x4124_0000` / `0x4125_0000` (identical on both platforms)
 
-> **Устарело.** Заменяется `iq_forge_regs` (`0x43C1_0000`, см. выше);
+> **Устарело.** Заменяется `iq_forge_regs` (`0x4100_0000`, см. выше);
 > раздел удаляется в PL-2.7. Оставлен как справка для миграции firmware.
 
 LFM (chirp) sweep parameters for `dds_tx_chain`'s `lfm_ftw_generator`, used
