@@ -3,7 +3,7 @@
 module lfm_ftw_generator_tb
 #(parameter ACC_WIDTH = 24);
 
-    logic clk, rst_n, load, continious;
+    logic clk, rst_n, load, continious, done;
     logic [ACC_WIDTH - 1 : 0] ftw_start, ftw_stop, ftw_incr, ftw;
 
     initial begin
@@ -26,6 +26,14 @@ module lfm_ftw_generator_tb
         assert (ftw == expected)
         else begin
             $display("%s: required 0x%x, current is 0x%x", what, expected, ftw);
+            $stop;
+        end
+    endtask
+
+    task automatic check_done(input logic expected, input string what);
+        assert (done === expected)
+        else begin
+            $display("%s: required done=%b, current is %b", what, expected, done);
             $stop;
         end
     endtask
@@ -88,6 +96,78 @@ module lfm_ftw_generator_tb
         repeat (5) begin
             step();
             check('h150, "held at stop");
+        end
+    endtask
+
+    task automatic one_shot_test();
+        $display("[TEST] one_shot_test");
+        apply_reset();
+        check_done(0, "after reset");
+        ftw_start <= 'h100;
+        ftw_stop  <= 'h140;
+        ftw_incr  <= 'h20;
+        load      <= 1;
+        step();
+        check_done(0, "during load");
+        load <= 0;
+
+        while (ftw < ftw_stop) begin
+            check_done(0, $sformatf("ramping at 0x%x", ftw));
+            step();
+        end
+        check('h140, "saturated");
+        check_done(1, "saturated");
+
+        repeat (5) begin
+            step();
+            check('h140, "held at stop");
+            check_done(1, "held at stop");
+        end
+    endtask
+
+    task automatic load_clears_done_test();
+        $display("[TEST] load_clears_done_test");
+        apply_reset();
+        ftw_start <= 'h100;
+        ftw_stop  <= 'h140;
+        ftw_incr  <= 'h20;
+        load      <= 1;
+        step();
+        load <= 0;
+        repeat (3) step();
+        check_done(1, "saturated before reload");
+
+        load <= 1;
+        step();
+        check('h100, "reload");
+        check_done(0, "cleared by load");
+        step();
+        check_done(0, "load held");
+        load <= 0;
+
+        step();
+        check('h120, "ramp after reload");
+        check_done(0, "ramp after reload");
+        step();
+        check('h140, "saturated again");
+        check_done(1, "saturated again");
+    endtask
+
+    task automatic continious_never_done_test();
+        $display("[TEST] continious_never_done_test");
+        apply_reset();
+        ftw_start  <= (1 << ACC_WIDTH) - 'h40;
+        ftw_stop   <= 'h40;
+        ftw_incr   <= 'h20;
+        continious <= 1;
+        load       <= 1;
+        step();
+        load <= 0;
+        check_done(0, "continious load");
+
+        for (int i = 1; i <= 20; i++) begin
+            step();
+            check_done(0, $sformatf("continious step %0d at 0x%x", i, ftw));
         end
     endtask
 
@@ -288,6 +368,9 @@ module lfm_ftw_generator_tb
         ramp_test();
         saturate_test();
         exact_stop_test();
+        one_shot_test();
+        load_clears_done_test();
+        continious_never_done_test();
         reload_test();
         load_priority_test();
         continious_wrap_test();
@@ -310,7 +393,8 @@ module lfm_ftw_generator_tb
         .i_ftw_start(ftw_start),
         .i_ftw_stop(ftw_stop),
         .i_ftw_incr(ftw_incr),
-        .o_ftw(ftw)
+        .o_ftw(ftw),
+        .o_done(done)
     );
 
 endmodule
