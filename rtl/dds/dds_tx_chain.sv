@@ -28,7 +28,8 @@ module dds_tx_chain #(
     output logic o_done,
     output logic [11:0] o_dbg_i,
     output logic [11:0] o_dbg_q,
-    output logic [ACC_WIDTH - 1 : 0] o_dbg_phase
+    output logic [ACC_WIDTH - 1 : 0] o_dbg_phase,
+    output logic o_lfm_done
 );
 
     logic [ACC_WIDTH - 1 : 0] phase;
@@ -46,6 +47,7 @@ module dds_tx_chain #(
     logic lfm_run;
     logic lfm_load_q;
     logic lfm_load;
+    logic lfm_done;
 
     assign lfm_run = i_mode & i_en;
 
@@ -67,9 +69,11 @@ module dds_tx_chain #(
         .i_ftw_start(i_lfm_ftw_start),
         .i_ftw_stop(i_lfm_ftw_stop),
         .i_ftw_incr(i_lfm_ftw_incr),
-        .o_ftw(lfm_ftw_reg)
+        .o_ftw(lfm_ftw_reg),
+        .o_done(lfm_done)
     );
 
+    assign o_lfm_done = (i_en && i_mode) ? (lfm_done) : (0);
     assign phase_ftw = i_mode ? lfm_ftw_reg : i_ftw;
 
     phase_acc #(.ACC_WIDTH(ACC_WIDTH)) ph_acc(

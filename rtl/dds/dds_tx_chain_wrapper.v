@@ -20,7 +20,8 @@ module dds_tx_chain_wrapper #(
     output wire                        o_tx_frame_p,
     output wire                        o_tx_frame_n,
     output wire                        o_fb_clk_p,
-    output wire                        o_fb_clk_n
+    output wire                        o_fb_clk_n,
+    output wire                        o_lfm_done
 );
 
     wire [11:0]              dbg_i;
@@ -49,7 +50,8 @@ module dds_tx_chain_wrapper #(
         .o_fb_clk_n(o_fb_clk_n),
         .o_dbg_i(dbg_i),
         .o_dbg_q(dbg_q),
-        .o_dbg_phase(dbg_phase)
+        .o_dbg_phase(dbg_phase),
+        .o_lfm_done(o_lfm_done)
     );
 
     generate
