@@ -25,6 +25,7 @@ module dds_tx_chain #(
     output logic o_tx_frame_n,
     output logic o_fb_clk_p,
     output logic o_fb_clk_n,
+    output logic o_done,
     output logic [11:0] o_dbg_i,
     output logic [11:0] o_dbg_q,
     output logic [ACC_WIDTH - 1 : 0] o_dbg_phase

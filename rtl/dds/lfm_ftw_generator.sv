@@ -10,7 +10,8 @@ module lfm_ftw_generator #(
         input logic [ACC_WIDTH - 1 : 0] i_ftw_start,
         input logic [ACC_WIDTH - 1 : 0] i_ftw_stop,
         input logic [ACC_WIDTH - 1 : 0] i_ftw_incr,
-        output logic [ACC_WIDTH - 1 : 0] o_ftw
+        output logic [ACC_WIDTH - 1 : 0] o_ftw,
+        output logic o_done
     );
 
     logic [ACC_WIDTH - 1 : 0] ftw_counter;
@@ -21,14 +22,19 @@ module lfm_ftw_generator #(
     always_ff @(posedge i_clk, negedge i_rst_n) begin
         if (~i_rst_n) begin
             ftw_counter <= 0;
+            o_done <= 0;
         end else begin
             if (i_load) begin
                 ftw_counter <= i_ftw_start;
+                o_done <= 0;
             end else begin
-                if (i_continious)
+                if (i_continious) begin
                     ftw_counter <= ftw_counter + i_ftw_incr;
-                else
+                    o_done <= 0;
+                end else begin
                     ftw_counter <= (ftw_next < {1'b0, i_ftw_stop}) ? ftw_next[ACC_WIDTH - 1 : 0] : i_ftw_stop;
+                    o_done <= (ftw_next >= {1'b0, i_ftw_stop});
+                end
             end
         end
     end
