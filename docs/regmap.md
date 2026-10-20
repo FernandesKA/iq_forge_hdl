@@ -17,7 +17,7 @@ datasheet for that register map, it's not duplicated here).
 а также `dds_rst_inv` / `dds_rst_n_and` в block design. `axi_gpio_ad9361_ctrl`
 (`pluto_sky`) остаётся как есть.
 
-Статус: спецификация, RTL ещё нет. Поведение ниже нормативно: RTL и тест
+Статус: RTL в `rtl/regs/iq_forge_regs.sv`, в BD ещё не подключён. Поведение ниже нормативно: RTL и тест
 пишутся по этому разделу.
 
 ### Размещение
@@ -27,7 +27,7 @@ datasheet for that register map, it's not duplicated here).
 | Base              | `0x4100_0000`                                              |
 | Размер окна       | 4 KiB (`0x4100_0000`..`0x4100_0FFF`), `-range 0x1000` в `assign_bd_address` |
 | Почему не `0x43C0_0000` | занят `debug_bridge_0/S_AXI/Reg0` (`rk7020f`, окно 64 KiB `0x43C0_0000`..`0x43C0_FFFF`). На `pluto_sky` он свободен, но база одна на обе платформы, чтобы firmware не ветвилась. |
-| Интерфейс         | AXI4-Lite slave, данные 32 бит, `C_S_AXI_ADDR_WIDTH = 12`  |
+| Интерфейс         | AXI4-Lite slave, данные 32 бит, `ADDR_W = 12`  |
 | Тактирование      | `s_axi_aclk` = `FCLK_CLK0` (50 MHz) -- тот же клок, что и `dds_tx_chain_wrapper_0/i_clk`, поэтому CDC внутри блока нет |
 | Сброс             | `s_axi_aresetn` = `rst_ps7_0_40M/peripheral_aresetn`, активный 0 |
 
@@ -107,7 +107,7 @@ Reset-значения `FTW` и `LFM_*` взяты из нынешних `C_DOUT
 
 | Бит      | Поле          | Описание |
 |----------|---------------|----------|
-| `0`      | `lfm_restart` | Запись `1` даёт импульс длиной ровно 1 такт `s_axi_aclk` на `o_lfm_restart`, в том же такте теневые `LFM_*` копируются в активные (см. «Атомарность LFM»). Свип начинается заново с `LFM_START`, `STATUS.lfm_done` падает. Запись `0` ничего не делает. |
+| `0`      | `lfm_restart` | Запись `1` даёт импульс длиной ровно 1 такт `s_axi_aclk` на `o_lfm_load`, в том же такте теневые `LFM_*` копируются в активные (см. «Атомарность LFM»). Свип начинается заново с `LFM_START`, `STATUS.lfm_done` падает. Запись `0` ничего не делает. |
 | `[31:1]` | --            | резерв |
 
 Импульс формируется в такте, когда регистр принимает запись (handshake по
@@ -189,13 +189,15 @@ AW и W завершён). Если LFM сейчас не запущен (`dds_e
 
 ```
 module iq_forge_regs #(
-    parameter int C_S_AXI_ADDR_WIDTH = 12,
-    parameter int ACC_WIDTH          = 24
+    parameter int          ADDR_W  = 12,
+    parameter int          FTW_W   = 24,
+    parameter logic [31:0] ID      = 32'h4951_4647,
+    parameter logic [31:0] VERSION = 32'h0001_0000
 ) (
     // AXI4-Lite slave
     input  logic                            s_axi_aclk,
     input  logic                            s_axi_aresetn,
-    input  logic [C_S_AXI_ADDR_WIDTH-1:0]   s_axi_awaddr,
+    input  logic [ADDR_W-1:0]               s_axi_awaddr,
     input  logic [2:0]                      s_axi_awprot,   // игнорируется
     input  logic                            s_axi_awvalid,
     output logic                            s_axi_awready,
@@ -206,7 +208,7 @@ module iq_forge_regs #(
     output logic [1:0]                      s_axi_bresp,    // всегда OKAY
     output logic                            s_axi_bvalid,
     input  logic                            s_axi_bready,
-    input  logic [C_S_AXI_ADDR_WIDTH-1:0]   s_axi_araddr,
+    input  logic [ADDR_W-1:0]               s_axi_araddr,
     input  logic [2:0]                      s_axi_arprot,   // игнорируется
     input  logic                            s_axi_arvalid,
     output logic                            s_axi_arready,
@@ -218,13 +220,13 @@ module iq_forge_regs #(
     // к dds_tx_chain_wrapper_0 (домен s_axi_aclk == i_clk)
     output logic                            o_dds_en,         // CTRL[0]
     output logic                            o_dds_rst_n,      // -> i_rst_n (и ad9361_rx_lvds_wrapper_0/i_rst_n на rk7020f)
-    output logic                            o_mode,           // CTRL[2]
+    output logic                            o_dds_mode,       // CTRL[2]
     output logic                            o_lfm_continious, // CTRL[3]
-    output logic                            o_lfm_restart,    // импульс 1 такт -> i_lfm_load
-    output logic [ACC_WIDTH-1:0]            o_ftw,
-    output logic [ACC_WIDTH-1:0]            o_lfm_start,      // активные копии
-    output logic [ACC_WIDTH-1:0]            o_lfm_stop,
-    output logic [ACC_WIDTH-1:0]            o_lfm_incr,
+    output logic                            o_lfm_load,       // импульс 1 такт -> i_lfm_load
+    output logic [FTW_W-1:0]                o_ftw,
+    output logic [FTW_W-1:0]                o_lfm_start,      // активные копии
+    output logic [FTW_W-1:0]                o_lfm_stop,
+    output logic [FTW_W-1:0]                o_lfm_incr,
     input  logic                            i_lfm_done,
 
     // к processing_system7_0/IRQ_F2P[0]
@@ -232,7 +234,7 @@ module iq_forge_regs #(
 );
 ```
 
-Все выходы, кроме `o_lfm_restart`, -- прямые выходы триггеров. `i_lfm_done`
+Все выходы, кроме `o_lfm_load`, -- прямые выходы триггеров. `i_lfm_done`
 уже регистровый и в том же домене, синхронизатор не нужен.
 
 ### Решения
