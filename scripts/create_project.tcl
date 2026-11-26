@@ -47,6 +47,12 @@ if {[file exists $BD_TCL]} {
 
 add_files -fileset constrs_1 $XDC
 
+set PLATFORM_TOP "platforms/$PLATFORM/top.v"
+if {[file exists $PLATFORM_TOP]} {
+    add_files -fileset sources_1 $PLATFORM_TOP
+    set_property top top [get_filesets sources_1]
+}
+
 update_compile_order -fileset sources_1
 
 puts "---- Project created for platform '$PLATFORM' (part $PART) at $PROJ_DIR/iq_forge_hdl.xpr ----"
