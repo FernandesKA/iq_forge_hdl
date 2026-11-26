@@ -42,6 +42,11 @@ proc create_root_design { parentCell } {
   set o_fb_clk_p [ create_bd_port -dir O -type clk o_fb_clk_p ]
   set o_fb_clk_n [ create_bd_port -dir O -type clk o_fb_clk_n ]
   set ad9361_resetb [ create_bd_port -dir O -from 0 -to 0 ad9361_resetb ]
+  set ad9361_enable [ create_bd_port -dir O ad9361_enable ]
+  set ad9361_txnrx [ create_bd_port -dir O ad9361_txnrx ]
+  set gpio_i [ create_bd_port -dir I -from 63 -to 0 gpio_i ]
+  set gpio_o [ create_bd_port -dir O -from 63 -to 0 gpio_o ]
+  set gpio_t [ create_bd_port -dir O -from 63 -to 0 gpio_t ]
   set SPI0_SCLK_O_0 [ create_bd_port -dir O SPI0_SCLK_O_0 ]
   set SPI0_SS_O_0 [ create_bd_port -dir O SPI0_SS_O_0 ]
   set SPI0_MOSI_O_0 [ create_bd_port -dir O SPI0_MOSI_O_0 ]
@@ -93,6 +98,10 @@ proc create_root_design { parentCell } {
     CONFIG.PCW_EN_EMIO_CD_SDIO0 {0} \
     CONFIG.PCW_EN_EMIO_ENET0 {0} \
     CONFIG.PCW_EN_EMIO_SPI0 {1} \
+    CONFIG.PCW_EN_EMIO_GPIO {1} \
+    CONFIG.PCW_GPIO_EMIO_GPIO_ENABLE {1} \
+    CONFIG.PCW_GPIO_EMIO_GPIO_IO {64} \
+    CONFIG.PCW_GPIO_EMIO_GPIO_WIDTH {64} \
     CONFIG.PCW_EN_EMIO_UART0 {0} \
     CONFIG.PCW_EN_ENET0 {1} \
     CONFIG.PCW_EN_SDIO0 {1} \
@@ -215,6 +224,21 @@ proc create_root_design { parentCell } {
   # Create instance: const_reset_n, and set properties
   set const_reset_n [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlconstant:1.1 const_reset_n ]
   set_property CONFIG.CONST_VAL {1} $const_reset_n
+
+  # Create instance: const_enable, and set properties (AD9361 ENABLE, active high)
+  set const_enable [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlconstant:1.1 const_enable ]
+  set_property CONFIG.CONST_VAL {1} $const_enable
+
+  # Create instance: const_txnrx, and set properties (1 = TX path select)
+  set const_txnrx [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlconstant:1.1 const_txnrx ]
+  set_property CONFIG.CONST_VAL {1} $const_txnrx
+
+  # PS GPIO EMIO bits 46..48 are Linux GPIO100..102. They control
+  # AD9361 resetb, enable and txnrx, respectively.
+  foreach {name bit} {slice_ad9361_resetb 46 slice_ad9361_enable 47 slice_ad9361_txnrx 48} {
+    set cell [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlslice:1.0 $name ]
+    set_property -dict [list CONFIG.DIN_WIDTH {64} CONFIG.DIN_FROM $bit CONFIG.DIN_TO $bit CONFIG.DOUT_WIDTH {1}] $cell
+  }
 
 
   # Create instance: axi_gpio_dds_ctrl, and set properties
@@ -373,6 +397,15 @@ proc create_root_design { parentCell } {
   # Create port connections
   connect_bd_net -net SPI0_MISO_I_0_1  [get_bd_ports SPI0_MISO_I_0] \
   [get_bd_pins processing_system7_0/SPI0_MISO_I]
+  connect_bd_net -net processing_system7_0_GPIO_I [get_bd_ports gpio_i] \
+  [get_bd_pins processing_system7_0/GPIO_I]
+  connect_bd_net -net processing_system7_0_GPIO_O [get_bd_ports gpio_o] \
+  [get_bd_pins processing_system7_0/GPIO_O] \
+  [get_bd_pins slice_ad9361_resetb/Din] \
+  [get_bd_pins slice_ad9361_enable/Din] \
+  [get_bd_pins slice_ad9361_txnrx/Din]
+  connect_bd_net -net processing_system7_0_GPIO_T [get_bd_ports gpio_t] \
+  [get_bd_pins processing_system7_0/GPIO_T]
   connect_bd_net -net axi_gpio_dds_ctrl_gpio_io_o  [get_bd_pins axi_gpio_dds_ctrl/gpio_io_o] \
   [get_bd_pins slice_dds_en/Din] \
   [get_bd_pins slice_dds_rst/Din] \
@@ -388,8 +421,10 @@ proc create_root_design { parentCell } {
   connect_bd_net -net axi_gpio_lfm_stop_gpio_io_o  [get_bd_pins axi_gpio_lfm_stop/gpio_io_o] \
   [get_bd_pins dds_tx_chain_wrapper_0/i_lfm_ftw_stop]
   connect_bd_net -net const_reset_n_dout  [get_bd_pins const_reset_n/dout] \
-  [get_bd_ports ad9361_resetb] \
   [get_bd_pins processing_system7_0/SPI0_SS_I]
+  connect_bd_net -net slice_ad9361_resetb_dout [get_bd_pins slice_ad9361_resetb/Dout] [get_bd_ports ad9361_resetb]
+  connect_bd_net -net slice_ad9361_enable_dout [get_bd_pins slice_ad9361_enable/Dout] [get_bd_ports ad9361_enable]
+  connect_bd_net -net slice_ad9361_txnrx_dout [get_bd_pins slice_ad9361_txnrx/Dout] [get_bd_ports ad9361_txnrx]
   connect_bd_net -net dds_rst_inv_Res  [get_bd_pins dds_rst_inv/Res] \
   [get_bd_pins dds_rst_n_and/Op2]
   connect_bd_net -net dds_rst_n_and_Res  [get_bd_pins dds_rst_n_and/Res] \

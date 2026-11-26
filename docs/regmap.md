@@ -1,6 +1,8 @@
 # Register map
 
-PL side exposes AD9361's three hardware control pins (`pluto_sky` only) and
+PL side exposes AD9361's hardware control pins. The RESETB AXI GPIO is present
+on both `pluto_sky` and `rk7020f`; the additional ENABLE/TXNRX controls are
+`pluto_sky`-specific, and
 the DDS TX chain's enable, reset, sine/LFM mode select, frequency tuning word
 and LFM (chirp) sweep parameters (both platforms) via AXI GPIO. Register-level AD9361 configuration itself goes over `SPI0`
 (PS7 hard SPI0, EMIO'd to `SPI0_{SCLK,SS,MOSI,MISO}_0` -- see AD9361
@@ -392,7 +394,7 @@ devmem 0x41000044 32 0x0
 «nobody cared». Для голой проверки `devmem` без драйвера смотреть
 `IRQ_STATUS`, а не `/proc/interrupts`.
 
-## `axi_gpio_ad9361_ctrl` -- base `0x4120_0000` (`pluto_sky` only)
+## `axi_gpio_ad9361_ctrl` -- base `0x4120_0000`
 
 | Offset  | Register    | Access | Reset | Description                          |
 |---------|-------------|--------|-------|---------------------------------------|
@@ -574,7 +576,7 @@ no AXI-addressable PS-PL bridge at all (`M_AXI_GP0` disabled), its
 `ps7_0_axi_periph` / `rst_ps7_0_40M` feeding just these two GPIOs -- see
 `platforms/rk7020f/bd.tcl`.
 
-`axi_gpio_ad9361_ctrl` remains `pluto_sky`-only: `rk7020f`'s block design
-doesn't even have `ad9361_enable`/`ad9361_txnrx` ports, only
-`ad9361_resetb`, and that's still tied to a constant `1` (`const_reset_n`)
-rather than driven from a register.
+On `rk7020f` this AXI GPIO is one bit wide and drives `ad9361_resetb` only;
+the `ad9361_enable`/`ad9361_txnrx` ports remain constant-high outputs. The
+reset register defaults to `0`, so software must release RESETB before SPI
+access.
